@@ -1,8 +1,8 @@
 import { Cropt } from "./cropt.js";
 function popupResult(src, viewport) {
-    const resultModal = new bootstrap.Modal(getElById('resultModal'));
-    const imgClass = (viewport === "circle") ? "rounded-circle" : "";
-    const bodyEl = document.querySelector('#resultModal .modal-body');
+    const resultModal = new bootstrap.Modal(getElById("resultModal"));
+    const imgClass = viewport === "circle" ? "rounded-circle" : "";
+    const bodyEl = document.querySelector("#resultModal .modal-body");
     if (bodyEl === null) {
         throw new Error("bodyEl is null");
     }
@@ -58,7 +58,7 @@ function getElById(elementId) {
 }
 function setCode() {
     const code = getCode();
-    getElById('code-el').innerHTML = hljs.highlight(code, { language: 'javascript' }).value;
+    getElById("code-el").innerHTML = hljs.highlight(code, { language: "javascript" }).value;
 }
 function demoMain() {
     const cropEl = getElById(cropElId);
@@ -70,35 +70,35 @@ function demoMain() {
             popupResult(canvas.toDataURL(), cropt.options.viewport.type);
         });
     };
-    const vpTypeSelect = getElById('viewportType');
+    const vpTypeSelect = getElById("viewportType");
     vpTypeSelect.value = options.viewport.type;
     vpTypeSelect.onchange = function (ev) {
         options.viewport.type = vpTypeSelect.value;
         setCode();
         cropt.setOptions(options);
     };
-    const widthRange = getElById('widthRange');
+    const widthRange = getElById("widthRange");
     widthRange.value = options.viewport.width.toString();
     widthRange.oninput = function (ev) {
         options.viewport.width = +widthRange.value;
         setCode();
         cropt.setOptions(options);
     };
-    const heightRange = getElById('heightRange');
+    const heightRange = getElById("heightRange");
     heightRange.value = options.viewport.height.toString();
     heightRange.oninput = function (ev) {
         options.viewport.height = +heightRange.value;
         setCode();
         cropt.setOptions(options);
     };
-    const mouseWheelSelect = getElById('mouseWheelSelect');
+    const mouseWheelSelect = getElById("mouseWheelSelect");
     mouseWheelSelect.value = options.mouseWheelZoom;
     mouseWheelSelect.onchange = function (ev) {
         options.mouseWheelZoom = mouseWheelSelect.value;
         setCode();
         cropt.setOptions(options);
     };
-    const fileInput = getElById('imgFile');
+    const fileInput = getElById("imgFile");
     fileInput.value = "";
     fileInput.onchange = function () {
         if (fileInput.files && fileInput.files[0]) {
@@ -109,7 +109,7 @@ function demoMain() {
             reader.onload = (e) => {
                 if (typeof e.target?.result === "string") {
                     cropt.bind(e.target.result).then(() => {
-                        console.log('upload bind complete');
+                        console.log("upload bind complete");
                     });
                 }
             };
