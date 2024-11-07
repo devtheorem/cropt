@@ -4,9 +4,9 @@ declare var hljs: any;
 declare var bootstrap: any;
 
 function popupResult(src: string, viewport: string) {
-    const resultModal = new bootstrap.Modal(getElById('resultModal'));
-    const imgClass = (viewport === "circle") ? "rounded-circle" : "";
-    const bodyEl = document.querySelector('#resultModal .modal-body');
+    const resultModal = new bootstrap.Modal(getElById("resultModal"));
+    const imgClass = viewport === "circle" ? "rounded-circle" : "";
+    const bodyEl = document.querySelector("#resultModal .modal-body");
 
     if (bodyEl === null) {
         throw new Error("bodyEl is null");
@@ -73,10 +73,10 @@ function getElById(elementId: string) {
 
 function setCode() {
     const code = getCode();
-    getElById('code-el').innerHTML = hljs.highlight(code, { language: 'javascript' }).value;
+    getElById("code-el").innerHTML = hljs.highlight(code, { language: "javascript" }).value;
 }
 
-function demoMain () {
+function demoMain() {
     const cropEl = getElById(cropElId);
     const resultBtn = getElById(resultBtnId);
     const cropt = new Cropt(cropEl, options);
@@ -88,7 +88,7 @@ function demoMain () {
         });
     };
 
-    const vpTypeSelect = getElById('viewportType') as HTMLSelectElement;
+    const vpTypeSelect = getElById("viewportType") as HTMLSelectElement;
     vpTypeSelect.value = options.viewport.type;
 
     vpTypeSelect.onchange = function (ev) {
@@ -97,7 +97,7 @@ function demoMain () {
         cropt.setOptions(options);
     };
 
-    const widthRange = getElById('widthRange') as HTMLInputElement;
+    const widthRange = getElById("widthRange") as HTMLInputElement;
     widthRange.value = options.viewport.width.toString();
 
     widthRange.oninput = function (ev) {
@@ -106,7 +106,7 @@ function demoMain () {
         cropt.setOptions(options);
     };
 
-    const heightRange = getElById('heightRange') as HTMLInputElement;
+    const heightRange = getElById("heightRange") as HTMLInputElement;
     heightRange.value = options.viewport.height.toString();
 
     heightRange.oninput = function (ev) {
@@ -115,7 +115,7 @@ function demoMain () {
         cropt.setOptions(options);
     };
 
-    const mouseWheelSelect = getElById('mouseWheelSelect') as HTMLSelectElement;
+    const mouseWheelSelect = getElById("mouseWheelSelect") as HTMLSelectElement;
     mouseWheelSelect.value = options.mouseWheelZoom;
 
     mouseWheelSelect.onchange = function (ev) {
@@ -124,7 +124,7 @@ function demoMain () {
         cropt.setOptions(options);
     };
 
-    const fileInput = getElById('imgFile') as HTMLInputElement;
+    const fileInput = getElById("imgFile") as HTMLInputElement;
     fileInput.value = "";
 
     fileInput.onchange = function () {
@@ -133,15 +133,15 @@ function demoMain () {
             photoSrc = file.name;
             setCode();
             const reader = new FileReader();
- 
+
             reader.onload = (e) => {
                 if (typeof e.target?.result === "string") {
                     cropt.bind(e.target.result).then(() => {
-                        console.log('upload bind complete');
+                        console.log("upload bind complete");
                     });
                 }
-            }
- 
+            };
+
             reader.readAsDataURL(file);
         }
     };

@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.9.1] - 2024-11-07
+### Changed
+- Removed unnecessary variables.
+- Code is now formatted with Prettier.
+
 ## [0.9.0] - 2024-10-23
 ### Fixed
 - Cropt now clamps image drags to the viewport boundary, rather than ignoring the delta if it would go past the boundary. This fixes unexpected gaps between the image and viewport edges. ([#5]).
@@ -62,6 +67,7 @@ This is the initial pre-release after forking from [Foliotek/Croppie](https://gi
 
 [#1]: https://github.com/devtheorem/cropt/pull/1
 [#5]: https://github.com/devtheorem/cropt/pull/5
+[0.9.1]: https://github.com/devtheorem/cropt/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/devtheorem/cropt/compare/v0.8.9...v0.9.0
 [0.8.9]: https://github.com/devtheorem/cropt/compare/v0.8.8...v0.8.9
 [0.8.8]: https://github.com/devtheorem/cropt/compare/v0.8.6...v0.8.8

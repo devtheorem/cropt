@@ -34,13 +34,13 @@ class TransformOrigin {
             this.y = 0;
             return;
         }
-        var css = el.style.transformOrigin.split(' ');
+        var css = el.style.transformOrigin.split(" ");
         this.x = parseFloat(css[0]);
         this.y = parseFloat(css[1]);
     }
 
     toString() {
-        return this.x + 'px ' + this.y + 'px';
+        return this.x + "px " + this.y + "px";
     }
 }
 
@@ -77,12 +77,12 @@ function loadImage(src: string): Promise<HTMLImageElement> {
 
 function getInitialElements() {
     return {
-        boundary: document.createElement('div'),
-        viewport: document.createElement('div'),
-        preview: document.createElement('img'),
-        overlay: document.createElement('div'),
-        zoomerWrap: document.createElement('div'),
-        zoomer: document.createElement('input'),
+        boundary: document.createElement("div"),
+        viewport: document.createElement("div"),
+        preview: document.createElement("img"),
+        overlay: document.createElement("div"),
+        zoomerWrap: document.createElement("div"),
+        zoomer: document.createElement("input"),
     };
 }
 
@@ -104,9 +104,7 @@ function clampDelta(innerDiff: number, delta: number, outerDiff: number) {
 
 function canvasSupportsWebP() {
     // https://caniuse.com/mdn-api_htmlcanvaselement_toblob_type_parameter_webp
-    return document.createElement('canvas')
-        .toDataURL('image/webp')
-        .startsWith('data:image/webp');
+    return document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp");
 }
 
 type RecursivePartial<T> = {
@@ -119,7 +117,7 @@ export interface CroptOptions {
         width: number;
         height: number;
         type: "square" | "circle";
-    }
+    };
     zoomerInputClass: string;
 }
 
@@ -145,9 +143,9 @@ export class Cropt {
         viewport: {
             width: 220,
             height: 220,
-            type: 'square',
+            type: "square",
         },
-        zoomerInputClass: 'cr-slider',
+        zoomerInputClass: "cr-slider",
     };
     #boundZoom: number | null = null;
     #scale = 1;
@@ -157,35 +155,35 @@ export class Cropt {
     }, 200);
 
     constructor(element: HTMLElement, options: RecursivePartial<CroptOptions>) {
-        if (element.classList.contains('cropt-container')) {
+        if (element.classList.contains("cropt-container")) {
             throw new Error("Cropt is already initialized on this element");
         }
 
         if (options.viewport) {
-            options.viewport = {...this.options.viewport, ...options.viewport};
+            options.viewport = { ...this.options.viewport, ...options.viewport };
         }
 
-        this.options = {...this.options, ...options as CroptOptions};
+        this.options = { ...this.options, ...(options as CroptOptions) };
         this.element = element;
-        this.element.classList.add('cropt-container');
+        this.element.classList.add("cropt-container");
 
         this.elements = getInitialElements();
-        this.elements.zoomerWrap.classList.add('cr-slider-wrap');
-        this.elements.boundary.classList.add('cr-boundary');
-        this.elements.viewport.classList.add('cr-viewport');
-        this.elements.overlay.classList.add('cr-overlay');
+        this.elements.zoomerWrap.classList.add("cr-slider-wrap");
+        this.elements.boundary.classList.add("cr-boundary");
+        this.elements.viewport.classList.add("cr-viewport");
+        this.elements.overlay.classList.add("cr-overlay");
 
-        this.elements.viewport.setAttribute('tabindex', "0");
+        this.elements.viewport.setAttribute("tabindex", "0");
         this.#setPreviewAttributes(this.elements.preview);
 
         this.elements.boundary.appendChild(this.elements.preview);
         this.elements.boundary.appendChild(this.elements.viewport);
         this.elements.boundary.appendChild(this.elements.overlay);
 
-        this.elements.zoomer.type = 'range';
-        this.elements.zoomer.step = '0.001';
-        this.elements.zoomer.value = '1';
-        this.elements.zoomer.setAttribute('aria-label', 'zoom');
+        this.elements.zoomer.type = "range";
+        this.elements.zoomer.step = "0.001";
+        this.elements.zoomer.value = "1";
+        this.elements.zoomer.setAttribute("aria-label", "zoom");
 
         this.element.appendChild(this.elements.boundary);
         this.element.appendChild(this.elements.zoomerWrap);
@@ -202,7 +200,7 @@ export class Cropt {
      */
     bind(src: string, zoom: number | null = null) {
         if (!src) {
-            throw new Error('src cannot be empty');
+            throw new Error("src cannot be empty");
         }
 
         this.#boundZoom = zoom;
@@ -266,13 +264,17 @@ export class Cropt {
 
         return new Promise((resolve, reject) => {
             this.toCanvas(size).then((canvas) => {
-                canvas.toBlob((blob) => {
-                    if (blob === null) {
-                        reject("Canvas blob is null");
-                    } else {
-                        resolve(blob);
-                    }
-                }, type, quality);
+                canvas.toBlob(
+                    (blob) => {
+                        if (blob === null) {
+                            reject("Canvas blob is null");
+                        } else {
+                            resolve(blob);
+                        }
+                    },
+                    type,
+                    quality,
+                );
             });
         });
     }
@@ -286,20 +288,23 @@ export class Cropt {
         const curHeight = this.options.viewport.height;
 
         if (options.viewport) {
-            options.viewport = {...this.options.viewport, ...options.viewport};
+            options.viewport = { ...this.options.viewport, ...options.viewport };
         }
 
-        this.options = {...this.options, ...options as CroptOptions};
+        this.options = { ...this.options, ...(options as CroptOptions) };
         this.#setOptionsCss();
 
-        if (this.options.viewport.width !== curWidth || this.options.viewport.height !== curHeight) {
+        if (
+            this.options.viewport.width !== curWidth ||
+            this.options.viewport.height !== curHeight
+        ) {
             this.refresh();
         }
     }
 
     setZoom(value: number) {
         setZoomerVal(value, this.elements.zoomer);
-        var event = new Event('input');
+        var event = new Event("input");
         this.elements.zoomer.dispatchEvent(event); // triggers this.#onZoom call
     }
 
@@ -308,7 +313,7 @@ export class Cropt {
             document.removeEventListener("keydown", this.#keyDownHandler);
         }
         this.element.removeChild(this.elements.boundary);
-        this.element.classList.remove('cropt-container');
+        this.element.classList.remove("cropt-container");
         this.element.removeChild(this.elements.zoomerWrap);
         this.elements = getInitialElements();
     }
@@ -321,11 +326,11 @@ export class Cropt {
         if (this.options.viewport.type === "circle") {
             viewport.classList.add(circleClass);
         } else {
-            viewport.classList.remove(circleClass)
+            viewport.classList.remove(circleClass);
         }
 
-        viewport.style.width = this.options.viewport.width + 'px';
-        viewport.style.height = this.options.viewport.height + 'px';
+        viewport.style.width = this.options.viewport.width + "px";
+        viewport.style.height = this.options.viewport.height + "px";
     }
 
     #getUnscaledCanvas(p: CropPoints) {
@@ -364,7 +369,7 @@ export class Cropt {
             width: oc.width,
             height: oc.height,
         };
-    
+
         while (cur.width * 0.5 > canvas.width) {
             // step down size by one half for smooth scaling
             let curWidth = cur.width;
@@ -372,7 +377,7 @@ export class Cropt {
 
             cur = {
                 width: Math.floor(cur.width * 0.5),
-                height: Math.floor(cur.height * 0.5)
+                height: Math.floor(cur.height * 0.5),
             };
 
             // write oc to buffer
@@ -410,14 +415,14 @@ export class Cropt {
                 maxX: maxX,
                 minX: maxX - (imgRect.width * (1 / scale) - viewport.width * (1 / scale)),
                 maxY: maxY,
-                minY: maxY - (imgRect.height * (1 / scale) - viewport.height * (1 / scale))
+                minY: maxY - (imgRect.height * (1 / scale) - viewport.height * (1 / scale)),
             },
             origin: {
                 maxX: imgRect.width * (1 / scale) - originMinX,
                 minX: originMinX,
                 maxY: imgRect.height * (1 / scale) - originMinY,
-                minY: originMinY
-            }
+                minY: originMinY,
+            },
         };
     }
 
@@ -454,7 +459,10 @@ export class Cropt {
             if (pEventCache.length === 2) {
                 let touch1 = pEventCache[0];
                 let touch2 = pEventCache[1];
-                let dist = Math.sqrt((touch1.pageX - touch2.pageX) * (touch1.pageX - touch2.pageX) + (touch1.pageY - touch2.pageY) * (touch1.pageY - touch2.pageY));
+                let dist = Math.sqrt(
+                    (touch1.pageX - touch2.pageX) * (touch1.pageX - touch2.pageX) +
+                        (touch1.pageY - touch2.pageY) * (touch1.pageY - touch2.pageY),
+                );
 
                 if (origPinchDistance === 0) {
                     origPinchDistance = dist / this.#scale;
@@ -479,9 +487,9 @@ export class Cropt {
             }
 
             if (pEventCache.length === 0) {
-                this.elements.overlay.removeEventListener('pointermove', pointerMove);
-                this.elements.overlay.removeEventListener('pointerup', pointerUp);
-                this.elements.overlay.removeEventListener('pointerout', pointerUp);
+                this.elements.overlay.removeEventListener("pointermove", pointerMove);
+                this.elements.overlay.removeEventListener("pointerup", pointerUp);
+                this.elements.overlay.removeEventListener("pointerout", pointerUp);
 
                 this.#setDragState(false, this.elements.preview);
                 origPinchDistance = 0;
@@ -505,9 +513,9 @@ export class Cropt {
             originalY = ev.pageY;
             this.#setDragState(true, this.elements.preview);
 
-            this.elements.overlay.addEventListener('pointermove', pointerMove);
-            this.elements.overlay.addEventListener('pointerup', pointerUp);
-            this.elements.overlay.addEventListener('pointerout', pointerUp);
+            this.elements.overlay.addEventListener("pointermove", pointerMove);
+            this.elements.overlay.addEventListener("pointerup", pointerUp);
+            this.elements.overlay.addEventListener("pointerout", pointerUp);
         };
 
         let keyDown = (ev: KeyboardEvent) => {
@@ -518,7 +526,7 @@ export class Cropt {
             if (ev.shiftKey && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) {
                 ev.preventDefault();
                 let zoomVal = parseFloat(this.elements.zoomer.value);
-                let stepVal = (ev.key === "ArrowUp") ? 0.01 : -0.01;
+                let stepVal = ev.key === "ArrowUp" ? 0.01 : -0.01;
                 this.setZoom(zoomVal + stepVal);
             } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.key)) {
                 ev.preventDefault();
@@ -527,8 +535,8 @@ export class Cropt {
             }
         };
 
-        this.elements.overlay.addEventListener('pointerdown', pointerDown);
-        document.addEventListener('keydown', keyDown);
+        this.elements.overlay.addEventListener("pointerdown", pointerDown);
+        document.addEventListener("keydown", keyDown);
         this.#keyDownHandler = keyDown;
     }
 
@@ -541,18 +549,18 @@ export class Cropt {
             const optionVal = this.options.mouseWheelZoom;
             let delta = 0;
 
-            if (optionVal === 'off' || optionVal === 'ctrl' && !ev.ctrlKey) {
+            if (optionVal === "off" || (optionVal === "ctrl" && !ev.ctrlKey)) {
                 return;
             } else if (ev.deltaY) {
-                delta = ev.deltaY * -1 / 2000;
+                delta = (ev.deltaY * -1) / 2000;
             }
 
             ev.preventDefault();
-            this.setZoom(this.#scale + (delta * this.#scale));
+            this.setZoom(this.#scale + delta * this.#scale);
         };
 
-        this.elements.zoomer.addEventListener('input', change);
-        this.elements.boundary.addEventListener('wheel', scroll);
+        this.elements.zoomer.addEventListener("input", change);
+        this.elements.boundary.addEventListener("wheel", scroll);
     }
 
     #onZoom() {
@@ -605,14 +613,14 @@ export class Cropt {
     }
 
     #setPreviewAttributes(preview: HTMLImageElement) {
-        preview.classList.add('cr-image');
-        preview.setAttribute('alt', 'preview');
+        preview.classList.add("cr-image");
+        preview.setAttribute("alt", "preview");
         this.#setDragState(false, preview);
     }
 
     #setDragState(isDragging: boolean, preview: HTMLImageElement) {
-        preview.setAttribute('aria-grabbed', isDragging.toString());
-        this.elements.boundary.setAttribute('aria-dropeffect', isDragging ? 'move': 'none');
+        preview.setAttribute("aria-grabbed", isDragging.toString());
+        this.elements.boundary.setAttribute("aria-dropeffect", isDragging ? "move" : "none");
     }
 
     #isVisible() {
@@ -624,8 +632,8 @@ export class Cropt {
         const imgData = this.elements.preview.getBoundingClientRect();
         const overlay = this.elements.overlay;
 
-        overlay.style.width = imgData.width + 'px';
-        overlay.style.height = imgData.height + 'px';
+        overlay.style.width = imgData.width + "px";
+        overlay.style.height = imgData.height + "px";
         overlay.style.top = `${imgData.top - boundRect.top}px`;
         overlay.style.left = `${imgData.left - boundRect.left}px`;
     }
@@ -665,7 +673,7 @@ export class Cropt {
         transform.y -= (center.y - curPos.y) * (1 - this.#scale);
 
         this.elements.preview.style.transform = transform.toString();
-        this.elements.preview.style.transformOrigin = center.x + 'px ' + center.y + 'px';
+        this.elements.preview.style.transformOrigin = center.x + "px " + center.y + "px";
     }
 
     #updateZoomLimits() {
