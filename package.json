@@ -26,7 +26,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theodorejb/cropt.git"
+    "url": "git+https://github.com/devtheorem/cropt.git"
   },
   "keywords": [
     "crop",
@@ -37,7 +37,7 @@
   "author": "Theodore Brown <theodorejb@outlook.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/theodorejb/cropt/issues"
+    "url": "https://github.com/devtheorem/cropt/issues"
   },
-  "homepage": "http://theodorejb.github.io/cropt"
+  "homepage": "http://devtheorem.github.io/cropt/"
 }

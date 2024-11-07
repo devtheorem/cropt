@@ -60,10 +60,10 @@ This is the initial pre-release after forking from [Foliotek/Croppie](https://gi
 - `enableResize` option.
 - `showZoomer` option (hide via CSS instead if desired).
 
-[#1]: https://github.com/theodorejb/cropt/pull/1
-[#5]: https://github.com/theodorejb/cropt/pull/5
-[0.9.0]: https://github.com/theodorejb/cropt/compare/v0.8.9...v0.9.0
-[0.8.9]: https://github.com/theodorejb/cropt/compare/v0.8.8...v0.8.9
-[0.8.8]: https://github.com/theodorejb/cropt/compare/v0.8.6...v0.8.8
-[0.8.6]: https://github.com/theodorejb/cropt/compare/v0.8.4...v0.8.6
-[0.8.4]: https://github.com/theodorejb/cropt/releases/tag/v0.8.4
+[#1]: https://github.com/devtheorem/cropt/pull/1
+[#5]: https://github.com/devtheorem/cropt/pull/5
+[0.9.0]: https://github.com/devtheorem/cropt/compare/v0.8.9...v0.9.0
+[0.8.9]: https://github.com/devtheorem/cropt/compare/v0.8.8...v0.8.9
+[0.8.8]: https://github.com/devtheorem/cropt/compare/v0.8.6...v0.8.8
+[0.8.6]: https://github.com/devtheorem/cropt/compare/v0.8.4...v0.8.6
+[0.8.4]: https://github.com/devtheorem/cropt/releases/tag/v0.8.4

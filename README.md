@@ -2,8 +2,6 @@
 
 Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but rewritten as a modern ES module with a simpler API, higher quality image scaling, and numerous other improvements.
 
-Demo: https://theodorejb.github.io/cropt/
-
 ## Installation
 
 ```
