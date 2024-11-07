@@ -10,17 +10,15 @@ class Transform {
     }
 
     toString() {
-        return 'translate(' + this.x + 'px, ' + this.y + 'px' + ') scale(' + this.scale + ')';
+        return `translate(${this.x}px, ${this.y}px) scale(${this.scale})`;
     }
 
     static parse(img: HTMLImageElement) {
-        const v = img.style.transform;
-
-        var values = v.split(') '),
-        translate = values[0].substring("translate".length + 1).split(','),
-        scale = values.length > 1 ? values[1].substring(6) : "1",
-        x = translate.length > 1 ? translate[0] : "0",
-        y = translate.length > 1 ? translate[1] : "0";
+        const values = img.style.transform.split(") ");
+        const translate = values[0].substring("translate".length + 1).split(",");
+        const scale = values.length > 1 ? values[1].substring(6) : "1";
+        const x = translate.length > 1 ? translate[0] : "0";
+        const y = translate.length > 1 ? translate[1] : "0";
 
         return new Transform(parseFloat(x), parseFloat(y), parseFloat(scale));
     }
@@ -98,6 +96,10 @@ function getArrowKeyDeltas(key: string): [number, number] {
     } else {
         return [0, -2];
     }
+}
+
+function clampDelta(innerDiff: number, delta: number, outerDiff: number) {
+    return Math.max(Math.min(innerDiff, delta), outerDiff);
 }
 
 function canvasSupportsWebP() {
@@ -212,26 +214,25 @@ export class Cropt {
     }
 
     #getPoints() {
-        var imgData = this.elements.preview.getBoundingClientRect(),
-            vpData = this.elements.viewport.getBoundingClientRect(),
-            x1 = vpData.left - imgData.left,
-            y1 = vpData.top - imgData.top,
-            widthDiff = (vpData.width - this.elements.viewport.offsetWidth) / 2, //border
-            heightDiff = (vpData.height - this.elements.viewport.offsetHeight) / 2,
-            x2 = x1 + this.elements.viewport.offsetWidth + widthDiff,
-            y2 = y1 + this.elements.viewport.offsetHeight + heightDiff;
-
-        x1 = Math.max(0, x1 / this.#scale);
-        y1 = Math.max(0, y1 / this.#scale);
-        x2 = Math.max(0, x2 / this.#scale);
-        y2 = Math.max(0, y2 / this.#scale);
+        const imgData = this.elements.preview.getBoundingClientRect();
+        const vpData = this.elements.viewport.getBoundingClientRect();
+        const oWidth = this.elements.viewport.offsetWidth;
+        const oHeight = this.elements.viewport.offsetHeight;
+        const widthDiff = (vpData.width - oWidth) / 2;
+        const heightDiff = (vpData.height - oHeight) / 2;
+        const left = vpData.left - imgData.left;
+        const top = vpData.top - imgData.top;
 
         return {
-            left: Math.round(x1),
-            top: Math.round(y1),
-            right: Math.round(x2),
-            bottom: Math.round(y2),
+            left: this.#getPoint(left),
+            top: this.#getPoint(top),
+            right: this.#getPoint(left + oWidth + widthDiff),
+            bottom: this.#getPoint(top + oHeight + heightDiff),
         };
+    }
+
+    #getPoint(pos: number) {
+        return Math.round(Math.max(0, pos / this.#scale));
     }
 
     /**
@@ -239,11 +240,11 @@ export class Cropt {
      * If size is specified, the image will be scaled with its longest side set to size.
      */
     toCanvas(size: number | null = null) {
-        var vpRect = this.elements.viewport.getBoundingClientRect();
-        var ratio = vpRect.width / vpRect.height;
-        var points = this.#getPoints();
-        var width = points.right - points.left;
-        var height = points.bottom - points.top;
+        const vpRect = this.elements.viewport.getBoundingClientRect();
+        const ratio = vpRect.width / vpRect.height;
+        const points = this.#getPoints();
+        let width = points.right - points.left;
+        let height = points.bottom - points.top;
 
         if (size !== null) {
             if (ratio > 1) {
@@ -328,10 +329,10 @@ export class Cropt {
     }
 
     #getUnscaledCanvas(p: CropPoints) {
-        var sWidth = p.right - p.left;
-        var sHeight = p.bottom - p.top;
-        var canvas = document.createElement('canvas');
-        var ctx = canvas.getContext("2d");
+        const sWidth = p.right - p.left;
+        const sHeight = p.bottom - p.top;
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
 
         if (ctx === null) {
             throw new Error("Canvas context cannot be null");
@@ -339,18 +340,19 @@ export class Cropt {
 
         canvas.width = sWidth;
         canvas.height = sHeight;
-        ctx.drawImage(this.elements.preview, p.left, p.top, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+        const el = this.elements.preview;
+        ctx.drawImage(el, p.left, p.top, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
 
         return canvas;
     }
 
     #getCanvas(points: CropPoints, width: number, height: number) {
-        var oc = this.#getUnscaledCanvas(points);
-        var octx = oc.getContext('2d');
-        var buffer = document.createElement('canvas');
-        var bctx = buffer.getContext("2d");
-        var canvas = document.createElement('canvas');
-        var ctx = canvas.getContext("2d");
+        const oc = this.#getUnscaledCanvas(points);
+        const octx = oc.getContext("2d");
+        const buffer = document.createElement("canvas");
+        const bctx = buffer.getContext("2d");
+        const canvas = document.createElement("canvas");
+        const ctx = canvas.getContext("2d");
         canvas.width = width;
         canvas.height = height;
 
@@ -358,10 +360,10 @@ export class Cropt {
             throw new Error("Canvas context cannot be null");
         }
 
-        var cur = {
+        let cur = {
             width: oc.width,
             height: oc.height,
-        }
+        };
     
         while (cur.width * 0.5 > canvas.width) {
             // step down size by one half for smooth scaling
@@ -390,41 +392,30 @@ export class Cropt {
     }
 
     #getVirtualBoundaries() {
-        var scale = this.#scale,
-            viewport = this.elements.viewport.getBoundingClientRect(),
-            vpWidth = viewport.width,
-            vpHeight = viewport.height,
-            centerFromBoundaryX = this.elements.boundary.clientWidth / 2,
-            centerFromBoundaryY = this.elements.boundary.clientHeight / 2,
-            imgRect = this.elements.preview.getBoundingClientRect(),
-            curImgWidth = imgRect.width,
-            curImgHeight = imgRect.height,
-            halfWidth = vpWidth / 2,
-            halfHeight = vpHeight / 2;
+        const scale = this.#scale;
+        const viewport = this.elements.viewport.getBoundingClientRect();
+        const centerFromBoundaryX = this.elements.boundary.clientWidth / 2;
+        const centerFromBoundaryY = this.elements.boundary.clientHeight / 2;
+        const imgRect = this.elements.preview.getBoundingClientRect();
+        const halfWidth = viewport.width / 2;
+        const halfHeight = viewport.height / 2;
 
-        var maxX = ((halfWidth / scale) - centerFromBoundaryX) * -1;
-        var minX = maxX - ((curImgWidth * (1 / scale)) - (vpWidth * (1 / scale)));
-
-        var maxY = ((halfHeight / scale) - centerFromBoundaryY) * -1;
-        var minY = maxY - ((curImgHeight * (1 / scale)) - (vpHeight * (1 / scale)));
-
-        var originMinX = (1 / scale) * halfWidth;
-        var originMaxX = (curImgWidth * (1 / scale)) - originMinX;
-
-        var originMinY = (1 / scale) * halfHeight;
-        var originMaxY = (curImgHeight * (1 / scale)) - originMinY;
+        const maxX = (halfWidth / scale - centerFromBoundaryX) * -1;
+        const maxY = (halfHeight / scale - centerFromBoundaryY) * -1;
+        const originMinX = (1 / scale) * halfWidth;
+        const originMinY = (1 / scale) * halfHeight;
 
         return {
             translate: {
                 maxX: maxX,
-                minX: minX,
+                minX: maxX - (imgRect.width * (1 / scale) - viewport.width * (1 / scale)),
                 maxY: maxY,
-                minY: minY
+                minY: maxY - (imgRect.height * (1 / scale) - viewport.height * (1 / scale))
             },
             origin: {
-                maxX: originMaxX,
+                maxX: imgRect.width * (1 / scale) - originMinX,
                 minX: originMinX,
-                maxY: originMaxY,
+                maxY: imgRect.height * (1 / scale) - originMinY,
                 minY: originMinY
             }
         };
@@ -435,11 +426,8 @@ export class Cropt {
         const vpRect = this.elements.viewport.getBoundingClientRect();
         const transform = Transform.parse(this.elements.preview);
 
-        const clampedDeltaY = Math.max(Math.min(vpRect.top - imgRect.top, deltaY), vpRect.bottom - imgRect.bottom);
-        const clampedDeltaX = Math.max(Math.min(vpRect.left - imgRect.left, deltaX), vpRect.right - imgRect.right);
-
-        transform.y += clampedDeltaY;
-        transform.x += clampedDeltaX;
+        transform.y += clampDelta(vpRect.top - imgRect.top, deltaY, vpRect.bottom - imgRect.bottom);
+        transform.x += clampDelta(vpRect.left - imgRect.left, deltaX, vpRect.right - imgRect.right);
 
         this.#updateCenterPoint(transform);
         this.#updateOverlayDebounced();
@@ -580,9 +568,9 @@ export class Cropt {
         transform.scale = this.#scale;
         applyCss();
 
-        var boundaries = this.#getVirtualBoundaries(),
-            transBoundaries = boundaries.translate,
-            oBoundaries = boundaries.origin;
+        const boundaries = this.#getVirtualBoundaries();
+        const transBoundaries = boundaries.translate;
+        const oBoundaries = boundaries.origin;
 
         if (transform.x >= transBoundaries.maxX) {
             origin.x = oBoundaries.minX;
@@ -638,8 +626,8 @@ export class Cropt {
 
         overlay.style.width = imgData.width + 'px';
         overlay.style.height = imgData.height + 'px';
-        overlay.style.top = (imgData.top - boundRect.top) + 'px';
-        overlay.style.left = (imgData.left - boundRect.left) + 'px';
+        overlay.style.top = `${imgData.top - boundRect.top}px`;
+        overlay.style.left = `${imgData.left - boundRect.left}px`;
     }
 
     #updatePropertiesFromImage() {
@@ -662,56 +650,59 @@ export class Cropt {
     }
 
     #updateCenterPoint(transform: Transform) {
-        var scale = this.#scale,
-            data = this.elements.preview.getBoundingClientRect(),
-            vpData = this.elements.viewport.getBoundingClientRect(),
-            pc = new TransformOrigin(this.elements.preview),
-            top = (vpData.top - data.top) + (vpData.height / 2),
-            left = (vpData.left - data.left) + (vpData.width / 2);
+        const vpData = this.elements.viewport.getBoundingClientRect();
+        const data = this.elements.preview.getBoundingClientRect();
+        const curPos = new TransformOrigin(this.elements.preview);
 
-        var center = { x: left / scale, y: top / scale };
-        var adj = {
-            x: (center.x - pc.x) * (1 - scale),
-            y: (center.y - pc.y) * (1 - scale),
+        const top = vpData.top - data.top + vpData.height / 2;
+        const left = vpData.left - data.left + vpData.width / 2;
+        const center = {
+            x: left / this.#scale,
+            y: top / this.#scale,
         };
 
-        transform.x -= adj.x;
-        transform.y -= adj.y;
+        transform.x -= (center.x - curPos.x) * (1 - this.#scale);
+        transform.y -= (center.y - curPos.y) * (1 - this.#scale);
 
         this.elements.preview.style.transform = transform.toString();
         this.elements.preview.style.transformOrigin = center.x + 'px ' + center.y + 'px';
     }
 
     #updateZoomLimits() {
-        var maxZoom = 0.85,
-            bData = this.elements.boundary.getBoundingClientRect(),
-            img = this.elements.preview,
-            vpData = this.elements.viewport.getBoundingClientRect(),
-            minW = vpData.width / img.naturalWidth,
-            minH = vpData.height / img.naturalHeight,
-            minZoom = Math.max(minW, minH);
+        const img = this.elements.preview;
+        const vpData = this.elements.viewport.getBoundingClientRect();
+        const minZoom = Math.max(
+            vpData.width / img.naturalWidth,
+            vpData.height / img.naturalHeight,
+        );
 
+        let maxZoom = 0.85;
         if (minZoom >= maxZoom) {
             maxZoom += minZoom;
         }
 
         this.elements.zoomer.min = fix(minZoom, 3);
         this.elements.zoomer.max = fix(maxZoom, 3);
+        let zoom = this.#boundZoom;
 
-        var defaultZoom = Math.max((bData.width / img.naturalWidth), (bData.height / img.naturalHeight));
-        this.setZoom(this.#boundZoom !== null ? this.#boundZoom : defaultZoom);
+        if (zoom === null) {
+            const bData = this.elements.boundary.getBoundingClientRect();
+            zoom = Math.max(bData.width / img.naturalWidth, bData.height / img.naturalHeight);
+        }
+
+        this.setZoom(zoom);
     }
 
     #centerImage() {
-        var imgDim = this.elements.preview.getBoundingClientRect(),
-            vpDim = this.elements.viewport.getBoundingClientRect(),
-            boundDim = this.elements.boundary.getBoundingClientRect(),
-            vpLeft = vpDim.left - boundDim.left,
-            vpTop = vpDim.top - boundDim.top,
-            w = vpLeft - ((imgDim.width - vpDim.width) / 2),
-            h = vpTop - ((imgDim.height - vpDim.height) / 2),
-            transform = new Transform(w, h, this.#scale);
+        const imgDim = this.elements.preview.getBoundingClientRect();
+        const vpDim = this.elements.viewport.getBoundingClientRect();
+        const boundDim = this.elements.boundary.getBoundingClientRect();
 
-        this.#updateCenterPoint(transform);
+        const vpLeft = vpDim.left - boundDim.left;
+        const vpTop = vpDim.top - boundDim.top;
+        const x = vpLeft - (imgDim.width - vpDim.width) / 2;
+        const y = vpTop - (imgDim.height - vpDim.height) / 2;
+
+        this.#updateCenterPoint(new Transform(x, y, this.#scale));
     }
 }
