@@ -1,12 +1,12 @@
 import { Cropt } from "./cropt.js";
-function popupResult(src, viewport) {
+function popupResult(src, borderRadius) {
     const resultModal = new bootstrap.Modal(getElById("resultModal"));
-    const imgClass = viewport === "circle" ? "rounded-circle" : "";
+    const imgStyle = `max-width: min(100%, 320px); max-height: 320px; border-radius: ${borderRadius};`;
     const bodyEl = document.querySelector("#resultModal .modal-body");
     if (bodyEl === null) {
         throw new Error("bodyEl is null");
     }
-    bodyEl.innerHTML = `<img src="${src}" class="${imgClass}" style="max-width: min(100%, 320px); max-height: 320px;" />`;
+    bodyEl.innerHTML = `<img src="${src}" style="${imgStyle}" />`;
     resultModal.show();
 }
 let photos = [
@@ -25,7 +25,7 @@ let options = {
     viewport: {
         width: 220,
         height: 220,
-        type: "circle",
+        borderRadius: "50%",
     },
     mouseWheelZoom: "on",
     zoomerInputClass: "form-range",
@@ -67,13 +67,13 @@ function demoMain() {
     cropt.bind(photoSrc);
     resultBtn.onclick = function () {
         cropt.toCanvas(outputSize).then(function (canvas) {
-            popupResult(canvas.toDataURL(), cropt.options.viewport.type);
+            popupResult(canvas.toDataURL(), cropt.options.viewport.borderRadius);
         });
     };
-    const vpTypeSelect = getElById("viewportType");
-    vpTypeSelect.value = options.viewport.type;
-    vpTypeSelect.onchange = function (ev) {
-        options.viewport.type = vpTypeSelect.value;
+    const borderRadiusRange = getElById("borderRadiusRange");
+    borderRadiusRange.value = parseInt(options.viewport.borderRadius).toString();
+    borderRadiusRange.oninput = function (ev) {
+        options.viewport.borderRadius = borderRadiusRange.value + "%";
         setCode();
         cropt.setOptions(options);
     };
