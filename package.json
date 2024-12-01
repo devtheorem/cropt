@@ -16,9 +16,9 @@
         "grunt-contrib-copy": "^1.0.0",
         "grunt-contrib-sass": "^2.0.0",
         "http-server": "^14.1.1",
-        "prettier": "^3.3.3",
+        "prettier": "^3.4.1",
         "sass": "^1.77.6",
-        "typescript": "^5.6.3"
+        "typescript": "^5.7.2"
     },
     "scripts": {
         "deploy": "gh-pages -d ./demo",
@@ -41,5 +41,11 @@
     "bugs": {
         "url": "https://github.com/devtheorem/cropt/issues"
     },
-    "homepage": "http://devtheorem.github.io/cropt/"
+    "homepage": "http://devtheorem.github.io/cropt/",
+    "cspell": {
+        "words": [
+            "Cropt",
+            "cropt"
+        ]
+    }
 }
