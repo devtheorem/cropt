@@ -41,10 +41,6 @@
     z-index: 0;
 }
 
-.cropt-container .cr-vp-circle {
-    border-radius: 50%;
-}
-
 .cropt-container .cr-overlay {
     z-index: 1;
     position: absolute;

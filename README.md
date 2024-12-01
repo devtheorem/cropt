@@ -37,10 +37,11 @@ If set to `"off"`, the mouse wheel cannot be used to zoom in and out of the imag
 
 ### `viewport`
 
-Type: `{ width: number, height: number, type: "square" | "circle" }`  
-Default value: `{ width: 220, height: 220, type: "square" }`
+Type: `{ width: number, height: number, borderRadius: string }`  
+Default value: `{ width: 220, height: 220, borderRadius: "0px" }`
 
 Defines the size and shape of the crop box.
+For a circle shape, set the border radius to `"50%"`.
 
 ### `zoomerInputClass`
 

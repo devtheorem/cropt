@@ -3,16 +3,16 @@ import { Cropt, type CroptOptions } from "./cropt.js";
 declare var hljs: any;
 declare var bootstrap: any;
 
-function popupResult(src: string, viewport: string) {
+function popupResult(src: string, borderRadius: string) {
     const resultModal = new bootstrap.Modal(getElById("resultModal"));
-    const imgClass = viewport === "circle" ? "rounded-circle" : "";
+    const imgStyle = `max-width: min(100%, 320px); max-height: 320px; border-radius: ${borderRadius};`;
     const bodyEl = document.querySelector("#resultModal .modal-body");
 
     if (bodyEl === null) {
         throw new Error("bodyEl is null");
     }
 
-    bodyEl.innerHTML = `<img src="${src}" class="${imgClass}" style="max-width: min(100%, 320px); max-height: 320px;" />`;
+    bodyEl.innerHTML = `<img src="${src}" style="${imgStyle}" />`;
     resultModal.show();
 }
 
@@ -34,7 +34,7 @@ let options: CroptOptions = {
     viewport: {
         width: 220,
         height: 220,
-        type: "circle",
+        borderRadius: "50%",
     },
     mouseWheelZoom: "on",
     zoomerInputClass: "form-range",
@@ -84,15 +84,15 @@ function demoMain() {
 
     resultBtn.onclick = function () {
         cropt.toCanvas(outputSize).then(function (canvas) {
-            popupResult(canvas.toDataURL(), cropt.options.viewport.type);
+            popupResult(canvas.toDataURL(), cropt.options.viewport.borderRadius);
         });
     };
 
-    const vpTypeSelect = getElById("viewportType") as HTMLSelectElement;
-    vpTypeSelect.value = options.viewport.type;
+    const borderRadiusRange = getElById("borderRadiusRange") as HTMLInputElement;
+    borderRadiusRange.value = parseInt(options.viewport.borderRadius).toString();
 
-    vpTypeSelect.onchange = function (ev) {
-        options.viewport.type = vpTypeSelect.value as "circle" | "square";
+    borderRadiusRange.oninput = function (ev) {
+        options.viewport.borderRadius = borderRadiusRange.value + "%";
         setCode();
         cropt.setOptions(options);
     };

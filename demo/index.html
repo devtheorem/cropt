@@ -123,14 +123,17 @@
                 </div>
                 <div class="col-12 col-md-5">
                     <form>
-                        <div class="mb-3">
-                            <div class="form-floating">
-                                <select class="form-select" id="viewportType">
-                                    <option value="square">Square</option>
-                                    <option value="circle">Circle</option>
-                                </select>
-                                <label for="viewportType">Viewport type</label>
-                            </div>
+                        <div class="mb-2">
+                            <label for="borderRadiusRange" class="form-label">
+                                Viewport border-radius
+                            </label>
+                            <input
+                                id="borderRadiusRange"
+                                type="range"
+                                class="form-range"
+                                min="0"
+                                max="50"
+                            />
                         </div>
                         <div class="mb-2">
                             <label for="widthRange" class="form-label">Viewport width</label>

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.0] - 2024-12-01
+### Changed
+- Replaced `viewport.type` option with `viewport.borderRadius`.
+This option takes a string containing a CSS length or percentage, and defaults to `"0px"`.
+To upgrade code that used the `"circle"` viewport type, instead set the border radius to `"50%"`.
+
 ## [0.9.1] - 2024-11-07
 ### Changed
 - Removed unnecessary variables.
@@ -67,6 +73,7 @@ This is the initial pre-release after forking from [Foliotek/Croppie](https://gi
 
 [#1]: https://github.com/devtheorem/cropt/pull/1
 [#5]: https://github.com/devtheorem/cropt/pull/5
+[1.0.0]: https://github.com/devtheorem/cropt/compare/v0.9.1...v1.0.0
 [0.9.1]: https://github.com/devtheorem/cropt/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/devtheorem/cropt/compare/v0.8.9...v0.9.0
 [0.8.9]: https://github.com/devtheorem/cropt/compare/v0.8.8...v0.8.9

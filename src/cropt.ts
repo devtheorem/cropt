@@ -116,7 +116,7 @@ export interface CroptOptions {
     viewport: {
         width: number;
         height: number;
-        type: "square" | "circle";
+        borderRadius: string;
     };
     zoomerInputClass: string;
 }
@@ -143,7 +143,7 @@ export class Cropt {
         viewport: {
             width: 220,
             height: 220,
-            type: "square",
+            borderRadius: "0px",
         },
         zoomerInputClass: "cr-slider",
     };
@@ -320,15 +320,8 @@ export class Cropt {
 
     #setOptionsCss() {
         this.elements.zoomer.className = this.options.zoomerInputClass;
-        const circleClass = "cr-vp-circle";
         const viewport = this.elements.viewport;
-
-        if (this.options.viewport.type === "circle") {
-            viewport.classList.add(circleClass);
-        } else {
-            viewport.classList.remove(circleClass);
-        }
-
+        viewport.style.borderRadius = this.options.viewport.borderRadius;
         viewport.style.width = this.options.viewport.width + "px";
         viewport.style.height = this.options.viewport.height + "px";
     }
