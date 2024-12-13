@@ -52,15 +52,11 @@ function debounce<T extends Function>(func: T, wait: number) {
     };
 }
 
-function fix(value: number, decimalPoints: number) {
-    return value.toFixed(decimalPoints);
-}
-
 function setZoomerVal(value: number, zoomer: HTMLInputElement) {
     const zMin = parseFloat(zoomer.min);
     const zMax = parseFloat(zoomer.max);
 
-    zoomer.value = fix(Math.max(zMin, Math.min(zMax, value)), 3);
+    zoomer.value = Math.max(zMin, Math.min(zMax, value)).toFixed(3);
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -682,8 +678,8 @@ export class Cropt {
             maxZoom += minZoom;
         }
 
-        this.elements.zoomer.min = fix(minZoom, 3);
-        this.elements.zoomer.max = fix(maxZoom, 3);
+        this.elements.zoomer.min = minZoom.toFixed(3);
+        this.elements.zoomer.max = maxZoom.toFixed(3);
         let zoom = this.#boundZoom;
 
         if (zoom === null) {
