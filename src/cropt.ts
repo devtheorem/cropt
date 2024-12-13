@@ -287,14 +287,14 @@ export class Cropt {
             options.viewport = { ...this.options.viewport, ...options.viewport };
         }
 
-        this.options = { ...this.options, ...(options as CroptOptions) };
+        this.options = structuredClone({ ...this.options, ...(options as CroptOptions) });
         this.#setOptionsCss();
 
         if (
             this.options.viewport.width !== curWidth ||
             this.options.viewport.height !== curHeight
         ) {
-            this.refresh();
+            this.#updateZoomLimits();
         }
     }
 
