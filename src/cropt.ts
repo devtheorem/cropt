@@ -34,9 +34,9 @@ class TransformOrigin {
             this.y = 0;
             return;
         }
-        const css = el.style.transformOrigin.split(" ");
-        this.x = parseFloat(css[0]);
-        this.y = parseFloat(css[1]);
+        const [x, y] = el.style.transformOrigin.split(" ");
+        this.x = parseFloat(x) || 0;
+        this.y = parseFloat(y) || 0;
     }
 
     toString() {
@@ -244,6 +244,24 @@ export class Cropt {
     }
 
     /**
+     * Returns:
+     * image { left, top, right, bottom }: the viewport rectangle mapped to ORIGINAL image 
+     * scale: user zoom used
+     * viewport: the active viewport size + borderRadius used (in case it's system adjusted)
+     */
+    getCropInfo() {
+        return {
+            image: this.#getPoints(),
+            scale: this.#scale,
+            viewport: {
+                width: Math.round(this.options.viewport.width),
+                height: Math.round(this.options.viewport.height),
+                borderRadius: parseInt(this.options.viewport.borderRadius),
+            }
+        }
+    }
+
+    /**
      * Returns a Promise resolving to an HTMLCanvasElement object for the cropped image.
      * If size is specified, the image will be scaled with its longest side set to size.
      */
@@ -403,7 +421,7 @@ export class Cropt {
         // Right handle - adjusts width
         let rightStartX = 0;
         let rightStartWidth = 0;
-                
+
         const rightPointerMove = (ev: PointerEvent) => {
             ev.preventDefault();
             const deltaX = ev.pageX - rightStartX;
@@ -690,10 +708,10 @@ export class Cropt {
             this.setZoom(this.#scale + delta * this.#scale);
         };
 
-        this.elements.zoomer.addEventListener("input", change);
-        this.elements.boundary.addEventListener("wheel", scroll);
         this.#zoomInputHandler = change;
         this.#wheelHandler = scroll;
+        this.elements.zoomer.addEventListener("input", this.#zoomInputHandler);
+        this.elements.boundary.addEventListener("wheel", this.#wheelHandler);
     }
 
     #onZoom() {

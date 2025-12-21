@@ -86,7 +86,7 @@
     pointer-events: none;
 }
 
-.cropt-container .cr-resize-handle-right {    
+.cropt-container .cr-resize-handle-right {
     cursor: ew-resize;
 }
 
