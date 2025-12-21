@@ -1,6 +1,6 @@
 # Cropt - lightweight JavaScript image cropper
 
-Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but rewritten as a modern ES module with a simpler API, higher quality image scaling, and numerous other improvements.
+Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but rewritten as a modern ES module with a simpler API, higher quality image scaling, and numerous other improvements. Brought Croppie Resize handles to life by [Filipe Laborde](https://github.com/mindflowgo/).
 
 ## Installation
 
@@ -119,4 +119,5 @@ Cropt should also work in any other modern browser using an engine based on Geck
 ## License
 
 MIT
+
 
