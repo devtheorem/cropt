@@ -34,9 +34,10 @@ class TransformOrigin {
             this.y = 0;
             return;
         }
-        var css = el.style.transformOrigin.split(" ");
-        this.x = parseFloat(css[0]);
-        this.y = parseFloat(css[1]);
+
+        const [x, y] = el.style.transformOrigin.split(" ");
+        this.x = parseFloat(x) || 0;
+        this.y = parseFloat(y) || 0;
     }
 
     toString() {
@@ -45,7 +46,7 @@ class TransformOrigin {
 }
 
 function debounce<T extends Function>(func: T, wait: number) {
-    let timer = 0;
+    let timer: number | undefined;
     return (...args: any) => {
         clearTimeout(timer);
         timer = setTimeout(() => func(...args), wait);
@@ -60,7 +61,7 @@ function setZoomerVal(value: number, zoomer: HTMLInputElement) {
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
-    var img = new Image();
+    const img = new Image();
 
     return new Promise(function (resolve, reject) {
         img.onload = () => {
@@ -143,12 +144,14 @@ export class Cropt {
         },
         zoomerInputClass: "cr-slider",
     };
-    #boundZoom: number | null = null;
+    #boundZoom: number | undefined = undefined;
     #scale = 1;
     #keyDownHandler: ((ev: KeyboardEvent) => void) | null = null;
+    #zoomInputHandler: (() => void) | null = null;
+    #wheelHandler: ((ev: WheelEvent) => void) | null = null;
     #updateOverlayDebounced = debounce(() => {
         this.#updateOverlay();
-    }, 200);
+    }, 100);
 
     constructor(element: HTMLElement, options: RecursivePartial<CroptOptions>) {
         if (element.classList.contains("cropt-container")) {
@@ -159,7 +162,7 @@ export class Cropt {
             options.viewport = { ...this.options.viewport, ...options.viewport };
         }
 
-        this.options = { ...this.options, ...(options as CroptOptions) };
+        this.options = { ...this.options, ...options } as CroptOptions;
         this.element = element;
         this.element.classList.add("cropt-container");
 
@@ -194,7 +197,7 @@ export class Cropt {
      * Bind an image from an src string.
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
-    bind(src: string, zoom: number | null = null) {
+    bind(src: string, zoom: number | undefined = undefined) {
         if (!src) {
             throw new Error("src cannot be empty");
         }
@@ -283,11 +286,12 @@ export class Cropt {
         const curWidth = this.options.viewport.width;
         const curHeight = this.options.viewport.height;
 
-        if (options.viewport) {
-            options.viewport = { ...this.options.viewport, ...options.viewport };
-        }
+        // if (options.viewport) {
+        //     options.viewport = { ...this.options.viewport, ...options.viewport };
+        // }
 
-        this.options = structuredClone({ ...this.options, ...(options as CroptOptions) });
+        // changed: removed structuredClone: slow, and would fail passing functions in options
+        this.options = { ...this.options, ...options } as CroptOptions;
         this.#setOptionsCss();
 
         if (
@@ -300,13 +304,19 @@ export class Cropt {
 
     setZoom(value: number) {
         setZoomerVal(value, this.elements.zoomer);
-        var event = new Event("input");
+        const event = new Event("input");
         this.elements.zoomer.dispatchEvent(event); // triggers this.#onZoom call
     }
 
     destroy() {
         if (this.#keyDownHandler) {
             document.removeEventListener("keydown", this.#keyDownHandler);
+        }
+        if (this.#zoomInputHandler) {
+            this.elements.zoomer.removeEventListener("input", this.#zoomInputHandler);
+        }
+        if (this.#wheelHandler) {
+            this.elements.boundary.removeEventListener("wheel", this.#wheelHandler);
         }
         this.element.removeChild(this.elements.boundary);
         this.element.classList.remove("cropt-container");
@@ -448,10 +458,7 @@ export class Cropt {
             if (pEventCache.length === 2) {
                 let touch1 = pEventCache[0];
                 let touch2 = pEventCache[1];
-                let dist = Math.sqrt(
-                    (touch1.pageX - touch2.pageX) * (touch1.pageX - touch2.pageX) +
-                        (touch1.pageY - touch2.pageY) * (touch1.pageY - touch2.pageY),
-                );
+                let dist = Math.hypot(touch1.pageX - touch2.pageX, touch1.pageY - touch2.pageY);
 
                 if (origPinchDistance === 0) {
                     origPinchDistance = dist / this.#scale;
@@ -550,6 +557,8 @@ export class Cropt {
 
         this.elements.zoomer.addEventListener("input", change);
         this.elements.boundary.addEventListener("wheel", scroll);
+        this.#zoomInputHandler = change;
+        this.#wheelHandler = scroll;
     }
 
     #onZoom() {
@@ -682,7 +691,7 @@ export class Cropt {
         this.elements.zoomer.max = maxZoom.toFixed(3);
         let zoom = this.#boundZoom;
 
-        if (zoom === null) {
+        if (zoom === undefined) {
             const bData = this.elements.boundary.getBoundingClientRect();
             zoom = Math.max(bData.width / img.naturalWidth, bData.height / img.naturalHeight);
         }
