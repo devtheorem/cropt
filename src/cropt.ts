@@ -34,10 +34,9 @@ class TransformOrigin {
             this.y = 0;
             return;
         }
-
-        const [x, y] = el.style.transformOrigin.split(" ");
-        this.x = parseFloat(x) || 0;
-        this.y = parseFloat(y) || 0;
+        const css = el.style.transformOrigin.split(" ");
+        this.x = parseFloat(css[0]);
+        this.y = parseFloat(css[1]);
     }
 
     toString() {
@@ -78,6 +77,9 @@ function getInitialElements() {
         viewport: document.createElement("div"),
         preview: document.createElement("img"),
         overlay: document.createElement("div"),
+        controls: document.createElement("div"),
+        resizeHandleRight: document.createElement("div"),
+        resizeHandleBottom: document.createElement("div"),
         zoomerWrap: document.createElement("div"),
         zoomer: document.createElement("input"),
     };
@@ -116,6 +118,7 @@ export interface CroptOptions {
         borderRadius: string;
     };
     zoomerInputClass: string;
+    resizeBars?: boolean;
 }
 
 interface CropPoints {
@@ -132,6 +135,9 @@ export class Cropt {
         viewport: HTMLDivElement;
         preview: HTMLImageElement;
         overlay: HTMLDivElement;
+        controls: HTMLDivElement;
+        resizeHandleRight: HTMLDivElement;
+        resizeHandleBottom: HTMLDivElement;
         zoomerWrap: HTMLDivElement;
         zoomer: HTMLInputElement;
     };
@@ -143,6 +149,7 @@ export class Cropt {
             borderRadius: "0px",
         },
         zoomerInputClass: "cr-slider",
+        resizeBars: false,
     };
     #boundZoom: number | undefined = undefined;
     #scale = 1;
@@ -162,6 +169,7 @@ export class Cropt {
             options.viewport = { ...this.options.viewport, ...options.viewport };
         }
 
+        // changed: removed structuredClone: slow, and would fail passing functions in options
         this.options = { ...this.options, ...options } as CroptOptions;
         this.element = element;
         this.element.classList.add("cropt-container");
@@ -171,6 +179,7 @@ export class Cropt {
         this.elements.boundary.classList.add("cr-boundary");
         this.elements.viewport.classList.add("cr-viewport");
         this.elements.overlay.classList.add("cr-overlay");
+        this.elements.controls.classList.add("cr-controls");
 
         this.elements.viewport.setAttribute("tabindex", "0");
         this.#setPreviewAttributes(this.elements.preview);
@@ -178,6 +187,8 @@ export class Cropt {
         this.elements.boundary.appendChild(this.elements.preview);
         this.elements.boundary.appendChild(this.elements.viewport);
         this.elements.boundary.appendChild(this.elements.overlay);
+        this.elements.boundary.appendChild(this.elements.controls);
+        this.#setupControlOverlay();
 
         this.elements.zoomer.type = "range";
         this.elements.zoomer.step = "0.001";
@@ -286,9 +297,9 @@ export class Cropt {
         const curWidth = this.options.viewport.width;
         const curHeight = this.options.viewport.height;
 
-        // if (options.viewport) {
-        //     options.viewport = { ...this.options.viewport, ...options.viewport };
-        // }
+        if (options.viewport) {
+            options.viewport = { ...this.options.viewport, ...options.viewport };
+        }
 
         // changed: removed structuredClone: slow, and would fail passing functions in options
         this.options = { ...this.options, ...options } as CroptOptions;
@@ -330,6 +341,130 @@ export class Cropt {
         viewport.style.borderRadius = this.options.viewport.borderRadius;
         viewport.style.width = this.options.viewport.width + "px";
         viewport.style.height = this.options.viewport.height + "px";
+
+        this.#updateControlHandlePositions(); // move controls overlayed (when necessary)
+    }
+
+    #setupControlOverlay() {
+        // currently only resize, if off, nothing to do
+        if( !this.options.resizeBars ) return 
+
+        const { resizeHandleRight, resizeHandleBottom } = this.elements;
+
+        // Style right handle - 44px touch zone with 10px visual indicator
+        resizeHandleRight.classList.add("cr-resize-handle","cr-resize-handle-right");
+        const resizeHandleRightGrabber = document.createElement("div");
+        resizeHandleRightGrabber.classList.add("cr-resize-handle-grabber");
+        resizeHandleRight.appendChild(resizeHandleRightGrabber);
+
+        // Style bottom handle - 44px touch zone with 10px visual indicator
+        resizeHandleBottom.classList.add("cr-resize-handle","cr-resize-handle-bottom")
+        const resizeHandleBottomGrabber = document.createElement("div");
+        resizeHandleBottomGrabber.classList.add("cr-resize-handle-grabber");
+        resizeHandleBottom.appendChild(resizeHandleBottomGrabber);
+
+        // Append to controls layer (sibling to viewport and overlay)
+        this.elements.controls.appendChild(resizeHandleRight);
+        this.elements.controls.appendChild(resizeHandleBottom);
+
+        // Initialize resize handlers
+        this.#initControlHandlers();
+        this.#updateControlHandlePositions();
+    }
+
+    #updateControlHandlePositions() {
+        if( !this.options.resizeBars ) return;
+
+        const { resizeHandleRight, resizeHandleBottom, viewport, boundary } = this.elements;
+        const width = this.options.viewport.width;
+        const height = this.options.viewport.height;
+        const handleSize = 44; // Touch zone size
+
+        // Get viewport position relative to boundary
+        const vpRect = viewport.getBoundingClientRect();
+        const boundRect = boundary.getBoundingClientRect();
+        const vpLeft = vpRect.left - boundRect.left;
+        const vpTop = vpRect.top - boundRect.top;
+
+        // Position right handle (middle of right edge of viewport)
+        // Center the 44px handle on the edge
+        resizeHandleRight.style.left = `${vpLeft + width - handleSize / 2}px`;
+        resizeHandleRight.style.top = `${vpTop + height / 2 - handleSize / 2}px`;
+
+        // Position bottom handle (middle of bottom edge of viewport)
+        // Center the 44px handle on the edge
+        resizeHandleBottom.style.left = `${vpLeft + width / 2 - handleSize / 2}px`;
+        resizeHandleBottom.style.top = `${vpTop + height - handleSize / 2}px`;
+    }
+
+    #initControlHandlers() {
+        const MIN_SIZE = 50;
+
+        // Right handle - adjusts width
+        let rightStartX = 0;
+        let rightStartWidth = 0;
+                
+        const rightPointerMove = (ev: PointerEvent) => {
+            ev.preventDefault();
+            const deltaX = ev.pageX - rightStartX;
+            const maxWidth = Math.floor(this.elements.boundary.clientWidth*0.95);
+            const newWidth = Math.min(maxWidth, Math.max(MIN_SIZE, rightStartWidth + deltaX));
+
+            this.options.viewport.width = newWidth;
+            this.#setOptionsCss();
+        };
+
+        const rightPointerUp = () => {
+            document.removeEventListener("pointermove", rightPointerMove);
+            document.removeEventListener("pointerup", rightPointerUp);
+        };
+
+        const rightPointerDown = (ev: PointerEvent) => {
+            if (ev.button !== 0) return; // Only left mouse button
+            ev.preventDefault();
+            ev.stopPropagation();
+
+            rightStartX = ev.pageX;
+            rightStartWidth = this.options.viewport.width;
+
+            document.addEventListener("pointermove", rightPointerMove);
+            document.addEventListener("pointerup", rightPointerUp);
+        };
+
+        this.elements.resizeHandleRight.addEventListener("pointerdown", rightPointerDown);
+
+        // Bottom handle - adjusts height
+        let bottomStartY = 0;
+        let bottomStartHeight = 0;
+
+        const bottomPointerMove = (ev: PointerEvent) => {
+            ev.preventDefault();
+            const deltaY = ev.pageY - bottomStartY;
+            const maxHeight = Math.floor(this.elements.boundary.clientHeight*0.95);
+            const newHeight = Math.min(maxHeight, Math.max(MIN_SIZE, bottomStartHeight + deltaY));
+
+            this.options.viewport.height = newHeight;
+            this.#setOptionsCss();
+        };
+
+        const bottomPointerUp = () => {
+            document.removeEventListener("pointermove", bottomPointerMove);
+            document.removeEventListener("pointerup", bottomPointerUp);
+        };
+
+        const bottomPointerDown = (ev: PointerEvent) => {
+            if (ev.button !== 0) return; // Only left mouse button
+            ev.preventDefault();
+            ev.stopPropagation();
+
+            bottomStartY = ev.pageY;
+            bottomStartHeight = this.options.viewport.height;
+
+            document.addEventListener("pointermove", bottomPointerMove);
+            document.addEventListener("pointerup", bottomPointerUp);
+        };
+
+        this.elements.resizeHandleBottom.addEventListener("pointerdown", bottomPointerDown);
     }
 
     #getUnscaledCanvas(p: CropPoints) {

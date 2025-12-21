@@ -38,6 +38,7 @@ let options: CroptOptions = {
     },
     mouseWheelZoom: "on",
     zoomerInputClass: "form-range",
+    resizeBars: true,
 };
 
 function getCode() {
