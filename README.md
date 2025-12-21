@@ -50,6 +50,13 @@ Default value: `"cr-slider"`
 
 Optionally set a different class on the zoom range input to customize styling (e.g. set to `"form-range"` when using Bootstrap).
 
+### `resizeBars`
+
+Type: `boolean`
+Default value: `false`
+
+Optionally to show resize handles (grab-bars) to adjust the viewport width/height.
+
 ## Methods
 
 ### `bind(src: string, zoom: number | null = null): Promise<void>`
@@ -112,3 +119,4 @@ Cropt should also work in any other modern browser using an engine based on Geck
 ## License
 
 MIT
+
