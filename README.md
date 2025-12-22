@@ -1,6 +1,6 @@
 # Cropt - lightweight JavaScript image cropper
 
-Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but rewritten as a modern ES module with a simpler API, higher quality image scaling, and numerous other improvements. Brought Croppie Resize handles to life by [Filipe Laborde](https://github.com/mindflowgo/).
+Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but rewritten as a modern ES module with a simpler API, higher quality image scaling, and numerous other improvements. 
 
 ## Installation
 
@@ -59,9 +59,9 @@ Optionally to show resize handles (grab-bars) to adjust the viewport width/heigh
 
 ## Methods
 
-### `bind(src: string, zoom: number | null = null): Promise<void>`
+### `bind(src: string, set: number | { transform, viewport }): Promise<void>`
 
-Takes an image URL as the first argument, and an optional initial zoom value. Returns a `Promise` which resolves when the image has been loaded and state is initialized.
+Takes an image URL as the first argument, and an optional initial zoom value OR {transform, viewport} object to restore image placement in viewport. Returns a `Promise` which resolves when the image has been loaded and state is initialized.
 
 ### `destroy(): void`
 
@@ -78,6 +78,15 @@ Returns a `Promise` resolving to an `HTMLCanvasElement` object for the cropped i
 ### `toBlob(size: number | null = null, type = "image/webp", quality = 1): Promise<Blob>`
 
 Returns a Promise resolving to a `Blob` object for the cropped image. If `size` is specified, the cropped image will be scaled with its longest side set to this value. The `type` and `quality` parameters are passed directly to the corresponding [HTMLCanvasElement.toBlob()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob) method parameters.
+
+### `get(): { crop: { left, top, right, bottom }, transform: { x, y, scale, origin: {x, y}}, viewport: { width, height, borderRadius } }`
+Returns information about the current crop state (all `number`s):
+
+- crop: Crop coordinates on the original image (left, top, right, bottom in pixels)
+- transform: Information for re-placement of image within viewport
+- viewport: Final viewport dimensions and styling (width, height, borderRadius)
+
+Useful for server-side cropping or saving user selections.
 
 ### `setOptions(options: CroptOptions): void`
 

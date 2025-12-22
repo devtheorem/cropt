@@ -206,18 +206,33 @@ export class Cropt {
 
     /**
      * Bind an image from an src string.
+     * Passing in set transform/viewport parameters will restore to those
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
-    bind(src: string, zoom: number | undefined = undefined) {
+    bind(src: string, set?: number | {
+        transform: { x: number; y: number; scale: number, origin: { x: number; y: number } };
+        viewport: { width: number; height: number; borderRadius: string };
+        }) {
+
         if (!src) {
             throw new Error("src cannot be empty");
         }
 
-        this.#boundZoom = zoom;
+        if (typeof(set) !== 'object') {
+            this.#boundZoom = set;
+        }
 
         return loadImage(src).then((img) => {
             this.#replaceImage(img);
-            this.#updatePropertiesFromImage();
+
+            if (typeof(set) === 'object') {
+                this.setOptions({ viewport: set.viewport });
+
+                // defer restore to next frame (after layout)
+                setTimeout(() => this.#restoreTransform(set.transform), 0);
+            } else {
+                this.#updatePropertiesFromImage();
+            }
         });
     }
 
@@ -243,24 +258,38 @@ export class Cropt {
         return Math.round(Math.max(0, pos / this.#scale));
     }
 
+    #restoreTransform(transform: { x: number; y: number; scale: number, origin: { x: number; y: number } }) {
+        const scale = transform.scale;
+        this.#scale = scale;
+        this.elements.zoomer.value = scale.toFixed(3);
+        
+        this.elements.preview.style.transform = new Transform(transform.x, transform.y, scale).toString()
+        this.elements.preview.style.transformOrigin = `${transform.origin.x}px ${transform.origin.y}px`;
+    
+        this.#updateOverlay();
+    }
+
     /**
      * Returns:
-     * image { left, top, right, bottom }: the viewport rectangle mapped to ORIGINAL image 
-     * scale: user zoom used
+     * crop { left, top, right, bottom }: the crop rectangle for image cropping outside Cropt
+     * transform: adjustments to re-create placement of image in viewport (ex. continue editing)
      * viewport: the active viewport size + borderRadius used (in case it's system adjusted)
      */
-    getCropInfo() {
+    get() {
         return {
-            image: this.#getPoints(),
-            scale: this.#scale,
+            crop: this.#getPoints(),
+            transform: {
+                ...Transform.parse(this.elements.preview),
+                origin: new TransformOrigin(this.elements.preview),
+            },
             viewport: {
                 width: Math.round(this.options.viewport.width),
                 height: Math.round(this.options.viewport.height),
-                borderRadius: parseInt(this.options.viewport.borderRadius),
+                borderRadius: this.options.viewport.borderRadius,
             }
-        }
+        };
     }
-
+    
     /**
      * Returns a Promise resolving to an HTMLCanvasElement object for the cropped image.
      * If size is specified, the image will be scaled with its longest side set to size.
