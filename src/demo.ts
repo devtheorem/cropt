@@ -80,9 +80,11 @@ function setCode() {
 function demoMain() {
     const cropEl = getElById(cropElId);
     const resultBtn = getElById(resultBtnId);
-    const set = {transform:{x:-736.431,y:-1298.56,scale:0.585,origin:{x:897.296,y:1458.98}},viewport:{width:220,height:220,borderRadius:'13%'}};
     const cropt = new Cropt(cropEl, options);
-    cropt.bind(photoSrc, set);
+    cropt.bind(photoSrc);
+    // If wanting to pass in preset image-transform/viewport; do this way:
+    // const set = {transform:{x:-736.431,y:-1298.56,scale:0.585,origin:{x:897.296,y:1458.98}},viewport:{width:220,height:220,borderRadius:'13%'}};
+    // cropt.bind(photoSrc, set);
 
     resultBtn.onclick = function () {
         const restoreSet = cropt.get();
