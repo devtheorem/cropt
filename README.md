@@ -69,7 +69,7 @@ Toggle if hiding the zoom slider.
 Type: `boolean`
 Default value: `true`
 
-Toggle if allow listening for keyboard arrow keys for moving image.
+Toggle if allow listening for keyboard arrow keys for moving image. Will ignore if active element is a user input one (input box, text area, button).
 
 ### `resizeBars`
 
