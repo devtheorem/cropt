@@ -60,7 +60,7 @@ const demoConfigs: Record<string, DemoConfig> = {
     demo2: {
         id: "crop-demo-2",
         options: {
-            viewport: { width: 252, height: 128, borderRadius: "0%" }, // Fixed: can't be 0x0
+            viewport: { width: 1, height: 1, borderRadius: "0%" },
         },
         preset: {
             "transform": {
@@ -84,7 +84,7 @@ const demoConfigs: Record<string, DemoConfig> = {
     demo3: {
         id: "crop-demo-3",
         options: {
-            viewport: { width: 160, height: 220, borderRadius: "30%" },
+            viewport: { width: 160, height: 220, borderRadius: "7%" },
             resizeBars: true,
         },
         preset: null,
@@ -103,7 +103,7 @@ function getCode() {
     const imgSrc = config.getRandomImage();
     let bindPreset = '';
     if (config.preset) {
-        bindPreset = `\n// Using a preset here:\nconst preset = ${JSON.stringify(config.preset)}`
+        bindPreset = `\n// Using a preset here (ignoring initial viewport setup):\nconst preset = ${JSON.stringify(config.preset)}`
                     + `\n// Pass to bind():`;
     }
 
@@ -233,10 +233,12 @@ function initializeDemo(demoKey: string) {
     // Destroy existing instance if present
     if (cropt) {
         cropt.destroy();
+        console.log( `Destroyed prior cropt instance;`);
     }
     
     // Create new instance
     cropt = new Cropt(cropEl, config.options);
+    console.log( `Initialized new Cropt() instance (${demoKey}).` );
 
     if (config.preset) {
         cropt.bind(imgSrc, config.preset);
@@ -275,7 +277,7 @@ function demoMain() {
                 initializeDemo(target);
                 setupControls();
                 setCode();
-                if (target === 'demo1') {
+                if (activeDemo === 'demo1') {
                     bindControlEvents();
                     bindFileUpload();
                 }
