@@ -34,6 +34,7 @@ interface DemoConfig {
         mouseWheelZoom?: "off" | "on" | "ctrl";
         zoomerInputClass?: string;
         resizeBars?: boolean;
+        enableRotate?: boolean;
     };
     preset: null | {
         transform: { x: number; y: number; scale: number; rotate: number; origin: { x: number; y: number } };
@@ -86,15 +87,18 @@ const demoConfigs: Record<string, DemoConfig> = {
         options: {
             viewport: { width: 160, height: 220, borderRadius: "7%" },
             resizeBars: true,
+            enableRotate: true,
         },
         preset: null,
         hideControls: true,
-        notes: "Note the <b>grab bars</b> on the viewport, you can manually adjust the sizing of viewport.",
+        notes: "Note the <b>grab bars</b> on the viewport, you can manually adjust the sizing of viewport."
+               +"<br><br>Note for <b>rotation</b>, if you are using the crop coordinates, <i>you must rotate "
+               +"the image FIRST</i>, then the crop coordinates apply.",
         getRandomImage: () => "photos/" + photos[Math.floor(Math.random() * photos.length)]
     }
 };
 
-let activeDemo = 'demo1'; // Initialize with default
+let activeDemo = 'demo1';
 let cropt: Cropt | null = null;
 
 function getCode() {

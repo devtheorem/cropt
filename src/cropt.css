@@ -24,7 +24,7 @@
 }
 
 .cropt-container .cr-boundary,
-.cropt-container .cr-slider-wrap {
+.cropt-container .cr-toolbar-wrap {
     width: 320px;
 }
 
@@ -48,12 +48,17 @@
     touch-action: none;
 }
 
-.cropt-container .cr-slider-wrap {
-    margin: 15px auto;
+.cropt-container .cr-toolbar-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin: 5px auto;
 }
 
 .cropt-container .cr-slider {
-    width: 100%;
+    flex: 1;
+    margin: 0 10px 0;
 }
 
 .cropt-container .cr-control {
@@ -93,3 +98,6 @@
 .cropt-container .cr-resize-handle-bottom {
     cursor: ns-resize;
 }
+
+
+
