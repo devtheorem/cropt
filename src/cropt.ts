@@ -111,7 +111,7 @@ export class Cropt {
         resizeBars: false,
         enableRotate: false,
     };
-    
+
     #boundZoom: number | undefined = undefined;
     #scale = 1;
     #rotation = 0;
@@ -155,7 +155,7 @@ export class Cropt {
         this.elements.zoomer.value = "1";
         this.elements.zoomer.setAttribute("aria-label", "zoom");
 
-        if( this.options.enableRotate ) {
+        if (this.options.enableRotate) {
             this.elements.rotateLeft.type = "button";
             this.elements.rotateLeft.innerHTML = "↺";
             this.elements.rotateLeft.setAttribute("aria-label", "rotate left");
@@ -170,7 +170,7 @@ export class Cropt {
             this.elements.toolBar.appendChild(this.elements.rotateRight);
         }
         this.elements.toolBar.appendChild(this.elements.zoomer);
-                
+
         this.element.appendChild(this.elements.boundary);
         this.element.appendChild(this.elements.toolBar);
 
@@ -185,23 +185,33 @@ export class Cropt {
      * Passing in preset transform/viewport parameters will restore to those
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
-    bind(src: string, preset?: number | {
-        transform: { x: number; y: number; scale: number, rotate: number, origin: { x: number; y: number } };
-        viewport: { width: number; height: number; borderRadius: string };
-        }) {
-
+    bind(
+        src: string,
+        preset?:
+            | number
+            | {
+                  transform: {
+                      x: number;
+                      y: number;
+                      scale: number;
+                      rotate: number;
+                      origin: { x: number; y: number };
+                  };
+                  viewport: { width: number; height: number; borderRadius: string };
+              },
+    ) {
         if (!src) {
             throw new Error("src cannot be empty");
         }
 
-        if (typeof(preset) !== 'object') {
+        if (typeof preset !== "object") {
             this.#boundZoom = preset;
         }
 
         return loadImage(src).then(async (img) => {
             this.#replaceImage(img);
 
-            if (typeof(preset) === 'object') {
+            if (typeof preset === "object") {
                 this.setOptions({ viewport: preset.viewport });
 
                 // defer restore to next frame (after layout)
@@ -260,10 +270,10 @@ export class Cropt {
                 width: Math.round(this.options.viewport.width),
                 height: Math.round(this.options.viewport.height),
                 borderRadius: this.options.viewport.borderRadius,
-            }
+            },
         };
     }
-    
+
     /**
      * Returns a Promise resolving to an HTMLCanvasElement object for the cropped image.
      * If size is specified, the image will be scaled with its longest side set to size.
@@ -341,13 +351,13 @@ export class Cropt {
     }
 
     async setRotation(degrees: number) {
-        if( degrees === undefined ) return;
+        if (degrees === undefined) return;
 
         // Normalize to 0, 90, 180, 270
         const normalizedDegrees = ((degrees % 360) + 360) % 360;
         const deltaRotation = normalizedDegrees - this.#rotation;
 
-        if( deltaRotation === 0 ) return; // No change
+        if (deltaRotation === 0) return; // No change
 
         this.#rotation = normalizedDegrees;
 
@@ -363,12 +373,12 @@ export class Cropt {
 
         // For 90 or 270 degree rotations, swap width and height
         const isRotated90 = Math.abs(degrees % 180) === 90;
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         canvas.width = isRotated90 ? bitmap.height : bitmap.width;
         canvas.height = isRotated90 ? bitmap.width : bitmap.height;
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) throw new Error('Could not get canvas context');
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("Could not get canvas context");
 
         // Rotate and draw
         ctx.translate(canvas.width / 2, canvas.height / 2);
@@ -378,11 +388,14 @@ export class Cropt {
 
         // Convert to blob and update img src
         const blob = await new Promise<Blob>((resolve, reject) => {
-            canvas.toBlob((b) => b ? resolve(b) : reject(new Error('Failed to create blob')), 'image/png');
+            canvas.toBlob(
+                (b) => (b ? resolve(b) : reject(new Error("Failed to create blob"))),
+                "image/png",
+            );
         });
 
         // Revoke old URL and set new one
-        if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+        if (img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
 
         img.src = URL.createObjectURL(blob);
         await img.decode(); // Wait for decode without onload event
@@ -392,7 +405,7 @@ export class Cropt {
         this.#abortController.abort();
 
         // Clean up blob URL if it exists
-        if (this.elements.preview.src.startsWith('blob:')) {
+        if (this.elements.preview.src.startsWith("blob:")) {
             URL.revokeObjectURL(this.elements.preview.src);
         }
 
@@ -404,11 +417,16 @@ export class Cropt {
 
     // adjust preview tranform styles (& transformOrigin)
     // NOTE: rotate is handled by physically rotating the image, not CSS transform
-    #previewTransform(data?: {x?: number, y?: number, scale?: number, origin?: {x?: number, y?: number}}): {x: number, y: number, scale: number, rotate: number, origin: {x: number, y: number}} {
-        const el = this.elements.preview
+    #previewTransform(data?: {
+        x?: number;
+        y?: number;
+        scale?: number;
+        origin?: { x?: number; y?: number };
+    }): { x: number; y: number; scale: number; rotate: number; origin: { x: number; y: number } } {
+        const el = this.elements.preview;
 
-        const parseOrigin = (): {x: number, y: number} => {
-            const [oxStr, oyStr] = (el.style.transformOrigin || '0px 0px').split(' ');
+        const parseOrigin = (): { x: number; y: number } => {
+            const [oxStr, oyStr] = (el.style.transformOrigin || "0px 0px").split(" ");
             return {
                 x: parseFloat(oxStr) || 0,
                 y: parseFloat(oyStr) || 0,
@@ -427,31 +445,33 @@ export class Cropt {
                 el.style.transformOrigin = `${ox}px ${oy}px`;
             }
 
-            return {x, y, scale, rotate: this.#rotation, origin: parseOrigin()};
+            return { x, y, scale, rotate: this.#rotation, origin: parseOrigin() };
         }
 
         // no data so PARSE current element and pass out
-        const str = el.style.transform || '';
-        let x = 0, y = 0, scale = 1;
+        const str = el.style.transform || "";
+        let x = 0,
+            y = 0,
+            scale = 1;
 
-        for (const action of ['translate', 'scale']) {
+        for (const action of ["translate", "scale"]) {
             const regex = new RegExp(`${action}\s*\\(([^)]+)\\)`);
             const match = str.match(regex);
 
             if (match) {
                 const value = match[1].trim();
 
-                if (action === 'translate') {
-                    const [xStr, yStr] = value.split(',').map(v => v.trim());
+                if (action === "translate") {
+                    const [xStr, yStr] = value.split(",").map((v) => v.trim());
                     x = Math.round(parseFloat(xStr)) || 0;
-                    y = yStr !== undefined ? (Math.round(parseFloat(yStr)) || 0) : x;
-                } else if (action === 'scale') {
+                    y = yStr !== undefined ? Math.round(parseFloat(yStr)) || 0 : x;
+                } else if (action === "scale") {
                     scale = parseFloat(value) || 1;
                 }
             }
         }
 
-        return {x, y, scale, rotate: this.#rotation, origin: parseOrigin()};
+        return { x, y, scale, rotate: this.#rotation, origin: parseOrigin() };
     }
 
     #setOptionsCss() {
@@ -466,18 +486,18 @@ export class Cropt {
 
     #setupControlOverlay() {
         // currently only resize, if off, nothing to do
-        if( !this.options.resizeBars ) return 
+        if (!this.options.resizeBars) return;
 
         const { resizeHandleRight, resizeHandleBottom } = this.elements;
 
         // Style right handle - 44px touch zone with 10px visual indicator
-        resizeHandleRight.classList.add("cr-resize-handle","cr-resize-handle-right");
+        resizeHandleRight.classList.add("cr-resize-handle", "cr-resize-handle-right");
         const resizeHandleRightGrabber = document.createElement("div");
         resizeHandleRightGrabber.classList.add("cr-resize-handle-grabber");
         resizeHandleRight.appendChild(resizeHandleRightGrabber);
 
         // Style bottom handle - 44px touch zone with 10px visual indicator
-        resizeHandleBottom.classList.add("cr-resize-handle","cr-resize-handle-bottom")
+        resizeHandleBottom.classList.add("cr-resize-handle", "cr-resize-handle-bottom");
         const resizeHandleBottomGrabber = document.createElement("div");
         resizeHandleBottomGrabber.classList.add("cr-resize-handle-grabber");
         resizeHandleBottom.appendChild(resizeHandleBottomGrabber);
@@ -492,7 +512,7 @@ export class Cropt {
     }
 
     #updateControlHandlePositions() {
-        if( !this.options.resizeBars ) return;
+        if (!this.options.resizeBars) return;
 
         const { resizeHandleRight, resizeHandleBottom, viewport, boundary } = this.elements;
         const width = this.options.viewport.width;
@@ -526,7 +546,7 @@ export class Cropt {
         const rightPointerMove = (ev: PointerEvent) => {
             ev.preventDefault();
             const deltaX = ev.pageX - rightStartX;
-            const maxWidth = Math.floor(this.elements.boundary.clientWidth*0.95);
+            const maxWidth = Math.floor(this.elements.boundary.clientWidth * 0.95);
             const newWidth = Math.min(maxWidth, Math.max(MIN_SIZE, rightStartWidth + deltaX));
 
             this.options.viewport.width = newWidth;
@@ -546,11 +566,17 @@ export class Cropt {
             rightStartX = ev.pageX;
             rightStartWidth = this.options.viewport.width;
 
-            document.addEventListener("pointermove", rightPointerMove, { signal: this.#abortController.signal });
-            document.addEventListener("pointerup", rightPointerUp, { signal: this.#abortController.signal });
+            document.addEventListener("pointermove", rightPointerMove, {
+                signal: this.#abortController.signal,
+            });
+            document.addEventListener("pointerup", rightPointerUp, {
+                signal: this.#abortController.signal,
+            });
         };
 
-        this.elements.resizeHandleRight.addEventListener("pointerdown", rightPointerDown, { signal: this.#abortController.signal });
+        this.elements.resizeHandleRight.addEventListener("pointerdown", rightPointerDown, {
+            signal: this.#abortController.signal,
+        });
 
         // Bottom handle - adjusts height
         let bottomStartY = 0;
@@ -559,7 +585,7 @@ export class Cropt {
         const bottomPointerMove = (ev: PointerEvent) => {
             ev.preventDefault();
             const deltaY = ev.pageY - bottomStartY;
-            const maxHeight = Math.floor(this.elements.boundary.clientHeight*0.95);
+            const maxHeight = Math.floor(this.elements.boundary.clientHeight * 0.95);
             const newHeight = Math.min(maxHeight, Math.max(MIN_SIZE, bottomStartHeight + deltaY));
 
             this.options.viewport.height = newHeight;
@@ -579,11 +605,17 @@ export class Cropt {
             bottomStartY = ev.pageY;
             bottomStartHeight = this.options.viewport.height;
 
-            document.addEventListener("pointermove", bottomPointerMove, { signal: this.#abortController.signal });
-            document.addEventListener("pointerup", bottomPointerUp, { signal: this.#abortController.signal });
+            document.addEventListener("pointermove", bottomPointerMove, {
+                signal: this.#abortController.signal,
+            });
+            document.addEventListener("pointerup", bottomPointerUp, {
+                signal: this.#abortController.signal,
+            });
         };
 
-        this.elements.resizeHandleBottom.addEventListener("pointerdown", bottomPointerDown, { signal: this.#abortController.signal });
+        this.elements.resizeHandleBottom.addEventListener("pointerdown", bottomPointerDown, {
+            signal: this.#abortController.signal,
+        });
     }
 
     #getUnscaledCanvas(p: CropPoints) {
@@ -763,9 +795,15 @@ export class Cropt {
             originalY = ev.pageY;
             this.#setDragState(true, this.elements.preview);
 
-            this.elements.overlay.addEventListener("pointermove", pointerMove, { signal: this.#abortController.signal });
-            this.elements.overlay.addEventListener("pointerup", pointerUp, { signal: this.#abortController.signal });
-            this.elements.overlay.addEventListener("pointerout", pointerUp, { signal: this.#abortController.signal });
+            this.elements.overlay.addEventListener("pointermove", pointerMove, {
+                signal: this.#abortController.signal,
+            });
+            this.elements.overlay.addEventListener("pointerup", pointerUp, {
+                signal: this.#abortController.signal,
+            });
+            this.elements.overlay.addEventListener("pointerout", pointerUp, {
+                signal: this.#abortController.signal,
+            });
         };
 
         let keyDown = (ev: KeyboardEvent) => {
@@ -785,7 +823,9 @@ export class Cropt {
             }
         };
 
-        this.elements.overlay.addEventListener("pointerdown", pointerDown, { signal: this.#abortController.signal });
+        this.elements.overlay.addEventListener("pointerdown", pointerDown, {
+            signal: this.#abortController.signal,
+        });
         document.addEventListener("keydown", keyDown, { signal: this.#abortController.signal });
     }
 
@@ -808,16 +848,20 @@ export class Cropt {
             this.setZoom(this.#scale + delta * this.#scale);
         };
 
-        this.elements.zoomer.addEventListener("input", change, { signal: this.#abortController.signal });
-        this.elements.boundary.addEventListener("wheel", scroll, { signal: this.#abortController.signal });
+        this.elements.zoomer.addEventListener("input", change, {
+            signal: this.#abortController.signal,
+        });
+        this.elements.boundary.addEventListener("wheel", scroll, {
+            signal: this.#abortController.signal,
+        });
     }
 
     #onZoom() {
-        const transform = this.#previewTransform()
+        const transform = this.#previewTransform();
         this.#scale = parseFloat(this.elements.zoomer.value);
         transform.scale = this.#scale;
         // this.#previewTransform(transform)
-        
+
         const boundaries = this.#getVirtualBoundaries();
         const transBoundaries = boundaries.translate;
         const oBoundaries = boundaries.origin;
@@ -847,12 +891,18 @@ export class Cropt {
     }
 
     #initializeRotate() {
-        if( !this.options.enableRotate ) return 
+        if (!this.options.enableRotate) return;
 
-        this.elements.rotateLeft.addEventListener("click", 
-            () => this.setRotation(this.#rotation - 90), { signal: this.#abortController.signal });
-        this.elements.rotateRight.addEventListener("click", 
-            () => this.setRotation(this.#rotation + 90), { signal: this.#abortController.signal });
+        this.elements.rotateLeft.addEventListener(
+            "click",
+            () => this.setRotation(this.#rotation - 90),
+            { signal: this.#abortController.signal },
+        );
+        this.elements.rotateRight.addEventListener(
+            "click",
+            () => this.setRotation(this.#rotation + 90),
+            { signal: this.#abortController.signal },
+        );
     }
 
     #replaceImage(img: HTMLImageElement) {
@@ -895,7 +945,7 @@ export class Cropt {
         }
 
         // resets values to calculate zoom limits
-        const transformReset = {x: 0, y: 0, scale: 1, origin: {x: 0, y: 0}}
+        const transformReset = { x: 0, y: 0, scale: 1, origin: { x: 0, y: 0 } };
         this.#previewTransform(transformReset);
         this.#updateZoomLimits();
 
@@ -905,10 +955,15 @@ export class Cropt {
         this.#updateOverlay();
     }
 
-    #updateCenterPoint(transform: {x: number, y: number, scale: number, origin?: {x: number, y: number}}) {
+    #updateCenterPoint(transform: {
+        x: number;
+        y: number;
+        scale: number;
+        origin?: { x: number; y: number };
+    }) {
         const vpData = this.elements.viewport.getBoundingClientRect();
         const data = this.elements.preview.getBoundingClientRect();
-        const { origin } = this.#previewTransform()
+        const { origin } = this.#previewTransform();
 
         const top = vpData.top - data.top + vpData.height / 2;
         const left = vpData.left - data.left + vpData.width / 2;
@@ -920,7 +975,7 @@ export class Cropt {
         transform.x = Math.round(transform.x - (center.x - (origin.x ?? 0)) * (1 - this.#scale));
         transform.y = Math.round(transform.y - (center.y - (origin.y ?? 0)) * (1 - this.#scale));
 
-        this.#previewTransform({ ...transform, origin: center })
+        this.#previewTransform({ ...transform, origin: center });
     }
 
     #updateZoomLimits(skipCenter = false) {
@@ -949,7 +1004,7 @@ export class Cropt {
 
         this.setZoom(zoom);
     }
-    
+
     #centerImage() {
         const imgDim = this.elements.preview.getBoundingClientRect();
         const vpDim = this.elements.viewport.getBoundingClientRect();
@@ -960,6 +1015,6 @@ export class Cropt {
         const x = vpLeft - (imgDim.width - vpDim.width) / 2;
         const y = vpTop - (imgDim.height - vpDim.height) / 2;
 
-        this.#updateCenterPoint({x, y, scale: this.#scale});
+        this.#updateCenterPoint({ x, y, scale: this.#scale });
     }
 }
