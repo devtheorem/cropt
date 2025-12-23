@@ -182,10 +182,10 @@ export class Cropt {
 
     /**
      * Bind an image from an src string.
-     * Passing in set transform/viewport parameters will restore to those
+     * Passing in preset transform/viewport parameters will restore to those
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
-    bind(src: string, set?: number | {
+    bind(src: string, preset?: number | {
         transform: { x: number; y: number; scale: number, rotate: number, origin: { x: number; y: number } };
         viewport: { width: number; height: number; borderRadius: string };
         }) {
@@ -194,28 +194,28 @@ export class Cropt {
             throw new Error("src cannot be empty");
         }
 
-        if (typeof(set) !== 'object') {
-            this.#boundZoom = set;
+        if (typeof(preset) !== 'object') {
+            this.#boundZoom = preset;
         }
 
         return loadImage(src).then(async (img) => {
             this.#replaceImage(img);
 
-            if (typeof(set) === 'object') {
-                this.setOptions({ viewport: set.viewport });
+            if (typeof(preset) === 'object') {
+                this.setOptions({ viewport: preset.viewport });
 
                 // defer restore to next frame (after layout)
                 setTimeout(async () => {
                     // Apply rotation first (physically rotates the image)
-                    if (set.transform.rotate) {
-                        await this.setRotation(set.transform.rotate);
+                    if (preset.transform.rotate) {
+                        await this.setRotation(preset.transform.rotate);
                     }
 
                     this.#updateZoomLimits(true); // skipping center
 
                     // Then apply scale and position
-                    this.setZoom(set.transform.scale);
-                    this.#previewTransform(set.transform);
+                    this.setZoom(preset.transform.scale);
+                    this.#previewTransform(preset.transform);
                     this.#updateOverlay();
                 }, 0);
             } else {

@@ -100,11 +100,12 @@ const demoConfigs: Record<string, DemoConfig> = {
 
 let activeDemo = 'demo1';
 let cropt: Cropt | null = null;
+let config = demoConfigs[activeDemo];
+let cropEl: HTMLElement | null = null;
+let imgSrc = '';
 
 function getCode() {
-    const config = demoConfigs[activeDemo];
     const optionStr = JSON.stringify(config.options, undefined, 4);
-    const imgSrc = config.getRandomImage();
     let bindPreset = '';
     if (config.preset) {
         bindPreset = `\n// Using a preset here (ignoring initial viewport setup):\nconst preset = ${JSON.stringify(config.preset)}`
@@ -230,9 +231,9 @@ function bindFileUpload() {
 }
 
 function initializeDemo(demoKey: string) {
-    const config = demoConfigs[demoKey];
-    const cropEl = getElById(config.id);
-    const imgSrc = config.getRandomImage();
+    config = demoConfigs[demoKey];
+    cropEl = getElById(config.id);
+    imgSrc = config.getRandomImage();
     
     // Destroy existing instance if present
     if (cropt) {
