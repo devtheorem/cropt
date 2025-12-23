@@ -1,49 +1,3 @@
-class Transform {
-    x: number;
-    y: number;
-    scale: number;
-
-    constructor(x: number, y: number, scale: number) {
-        this.x = x;
-        this.y = y;
-        this.scale = scale;
-    }
-
-    toString() {
-        return `translate(${this.x}px, ${this.y}px) scale(${this.scale})`;
-    }
-
-    static parse(img: HTMLImageElement) {
-        const values = img.style.transform.split(") ");
-        const translate = values[0].substring("translate".length + 1).split(",");
-        const scale = values.length > 1 ? values[1].substring(6) : "1";
-        const x = translate.length > 1 ? translate[0] : "0";
-        const y = translate.length > 1 ? translate[1] : "0";
-
-        return new Transform(parseFloat(x), parseFloat(y), parseFloat(scale));
-    }
-}
-
-class TransformOrigin {
-    x: number;
-    y: number;
-
-    constructor(el?: HTMLImageElement) {
-        if (!el || !el.style.transformOrigin) {
-            this.x = 0;
-            this.y = 0;
-            return;
-        }
-        const [x, y] = el.style.transformOrigin.split(" ");
-        this.x = parseFloat(x) || 0;
-        this.y = parseFloat(y) || 0;
-    }
-
-    toString() {
-        return this.x + "px " + this.y + "px";
-    }
-}
-
 function debounce<T extends Function>(func: T, wait: number) {
     let timer: number | undefined;
     return (...args: any) => {
@@ -98,7 +52,7 @@ function getArrowKeyDeltas(key: string): [number, number] {
 }
 
 function clampDelta(innerDiff: number, delta: number, outerDiff: number) {
-    return Math.max(Math.min(innerDiff, delta), outerDiff);
+    return Math.round(Math.max(Math.min(innerDiff, delta), outerDiff));
 }
 
 function canvasSupportsWebP() {
@@ -229,7 +183,11 @@ export class Cropt {
                 this.setOptions({ viewport: set.viewport });
 
                 // defer restore to next frame (after layout)
-                setTimeout(() => this.#restoreTransform(set.transform), 0);
+                setTimeout(() => {
+                    this.#updateZoomLimits(true);
+                    this.setZoom(set.transform.scale);
+                    this.#previewTransform(set.transform)
+                }, 0);
             } else {
                 this.#updatePropertiesFromImage();
             }
@@ -258,17 +216,6 @@ export class Cropt {
         return Math.round(Math.max(0, pos / this.#scale));
     }
 
-    #restoreTransform(transform: { x: number; y: number; scale: number, origin: { x: number; y: number } }) {
-        const scale = transform.scale;
-        this.#scale = scale;
-        this.elements.zoomer.value = scale.toFixed(3);
-        
-        this.elements.preview.style.transform = new Transform(transform.x, transform.y, scale).toString()
-        this.elements.preview.style.transformOrigin = `${transform.origin.x}px ${transform.origin.y}px`;
-    
-        this.#updateOverlay();
-    }
-
     /**
      * Returns:
      * crop { left, top, right, bottom }: the crop rectangle for image cropping outside Cropt
@@ -278,10 +225,7 @@ export class Cropt {
     get() {
         return {
             crop: this.#getPoints(),
-            transform: {
-                ...Transform.parse(this.elements.preview),
-                origin: new TransformOrigin(this.elements.preview),
-            },
+            transform: this.#previewTransform(),
             viewport: {
                 width: Math.round(this.options.viewport.width),
                 height: Math.round(this.options.viewport.height),
@@ -380,6 +324,59 @@ export class Cropt {
         this.element.classList.remove("cropt-container");
         this.element.removeChild(this.elements.zoomerWrap);
         this.elements = getInitialElements();
+    }
+
+    // adjust preview tranform styles (& transformOrigin)
+    #previewTransform(data?: {x?: number, y?: number, scale?: number, rotate?: number, origin?: {x?: number, y?: number}}): {x: number, y: number, scale: number, rotate: number, origin: {x: number, y: number}} {
+        const el = this.elements.preview
+
+        const parseOrigin = (): {x: number, y: number} => {
+            const [oxStr, oyStr] = (el.style.transformOrigin || '0px 0px').split(' ');
+            return {
+                x: parseFloat(oxStr) || 0,
+                y: parseFloat(oyStr) || 0,
+            };
+        };
+
+        // apply the data given
+        if (data !== undefined) {
+            const { x = 0, y = 0, scale = 1, rotate = 0 } = data;
+            el.style.transform = `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotate}deg)`;
+
+            // Only set transformOrigin if provided
+            if (data.origin !== undefined) {
+                const ox = data.origin.x ?? 0;
+                const oy = data.origin.y ?? 0;
+                el.style.transformOrigin = `${ox}px ${oy}px`;
+            }
+
+            return {x, y, scale, rotate, origin: parseOrigin()};
+        }
+
+        // no data so PARSE current element and pass out
+        const str = el.style.transform || '';
+        let x = 0, y = 0, scale = 1, rotate = 0;
+
+        for (const action of ['translate', 'scale', 'rotate']) {
+            const regex = new RegExp(`${action}\s*\\(([^)]+)\\)`);
+            const match = str.match(regex);
+
+            if (match) {
+                const value = match[1].trim();
+
+                if (action === 'translate') {
+                    const [xStr, yStr] = value.split(',').map(v => v.trim());
+                    x = Math.round(parseFloat(xStr)) || 0;
+                    y = yStr !== undefined ? (Math.round(parseFloat(yStr)) || 0) : x;
+                } else if (action === 'scale') {
+                    scale = parseFloat(value) || 1;
+                } else if (action === 'rotate') {
+                    rotate = parseFloat(value.replace('deg','')) || 0;
+                }
+            }
+        }
+
+        return {x, y, scale, rotate, origin: parseOrigin()};
     }
 
     #setOptionsCss() {
@@ -610,7 +607,7 @@ export class Cropt {
     #assignTransformCoordinates(deltaX: number, deltaY: number) {
         const imgRect = this.elements.preview.getBoundingClientRect();
         const vpRect = this.elements.viewport.getBoundingClientRect();
-        const transform = Transform.parse(this.elements.preview);
+        const transform = this.#previewTransform();
 
         transform.y += clampDelta(vpRect.top - imgRect.top, deltaY, vpRect.bottom - imgRect.bottom);
         transform.x += clampDelta(vpRect.left - imgRect.left, deltaX, vpRect.right - imgRect.right);
@@ -744,43 +741,36 @@ export class Cropt {
     }
 
     #onZoom() {
-        const transform = Transform.parse(this.elements.preview);
-        const origin = new TransformOrigin(this.elements.preview);
-
-        let applyCss = () => {
-            this.elements.preview.style.transform = transform.toString();
-            this.elements.preview.style.transformOrigin = origin.toString();
-        };
-
+        const transform = this.#previewTransform()
         this.#scale = parseFloat(this.elements.zoomer.value);
         transform.scale = this.#scale;
-        applyCss();
-
+        // this.#previewTransform(transform)
+        
         const boundaries = this.#getVirtualBoundaries();
         const transBoundaries = boundaries.translate;
         const oBoundaries = boundaries.origin;
 
         if (transform.x >= transBoundaries.maxX) {
-            origin.x = oBoundaries.minX;
+            transform.origin.x = oBoundaries.minX;
             transform.x = transBoundaries.maxX;
         }
 
         if (transform.x <= transBoundaries.minX) {
-            origin.x = oBoundaries.maxX;
+            transform.origin.x = oBoundaries.maxX;
             transform.x = transBoundaries.minX;
         }
 
         if (transform.y >= transBoundaries.maxY) {
-            origin.y = oBoundaries.minY;
+            transform.origin.y = oBoundaries.minY;
             transform.y = transBoundaries.maxY;
         }
 
         if (transform.y <= transBoundaries.minY) {
-            origin.y = oBoundaries.maxY;
+            transform.origin.y = oBoundaries.maxY;
             transform.y = transBoundaries.minY;
         }
 
-        applyCss();
+        this.#previewTransform(transform);
         this.#updateOverlayDebounced();
     }
 
@@ -823,40 +813,36 @@ export class Cropt {
             return;
         }
 
-        const preview = this.elements.preview;
-        const transformReset = new Transform(0, 0, 1);
-        preview.style.transform = transformReset.toString();
-        preview.style.transformOrigin = new TransformOrigin().toString();
-
+        // resets values to calculate zoom limits
+        const transformReset = {x: 0, y: 0, scale: 1, rotate: 0, origin: {x: 0, y: 0}}
+        this.#previewTransform(transformReset);
         this.#updateZoomLimits();
-        transformReset.scale = this.#scale;
-        preview.style.transform = transformReset.toString();
-        preview.style.transformOrigin = new TransformOrigin().toString();
 
+        transformReset.scale = this.#scale
+        this.#previewTransform(transformReset);
         this.#centerImage();
         this.#updateOverlay();
     }
 
-    #updateCenterPoint(transform: Transform) {
+    #updateCenterPoint(transform: {x: number, y: number, scale: number, rotate?: number, origin?: {x: number, y: number}}) {
         const vpData = this.elements.viewport.getBoundingClientRect();
         const data = this.elements.preview.getBoundingClientRect();
-        const curPos = new TransformOrigin(this.elements.preview);
+        const { origin } = this.#previewTransform()
 
         const top = vpData.top - data.top + vpData.height / 2;
         const left = vpData.left - data.left + vpData.width / 2;
         const center = {
-            x: left / this.#scale,
-            y: top / this.#scale,
+            x: Math.round(left / this.#scale),
+            y: Math.round(top / this.#scale),
         };
 
-        transform.x -= (center.x - curPos.x) * (1 - this.#scale);
-        transform.y -= (center.y - curPos.y) * (1 - this.#scale);
+        transform.x = Math.round(transform.x - (center.x - (origin.x ?? 0)) * (1 - this.#scale));
+        transform.y = Math.round(transform.y - (center.y - (origin.y ?? 0)) * (1 - this.#scale));
 
-        this.elements.preview.style.transform = transform.toString();
-        this.elements.preview.style.transformOrigin = center.x + "px " + center.y + "px";
+        this.#previewTransform({ ...transform, origin: center })
     }
 
-    #updateZoomLimits() {
+    #updateZoomLimits(skipCenter = false) {
         const img = this.elements.preview;
         const vpData = this.elements.viewport.getBoundingClientRect();
         const minZoom = Math.max(
@@ -871,6 +857,8 @@ export class Cropt {
 
         this.elements.zoomer.min = minZoom.toFixed(3);
         this.elements.zoomer.max = maxZoom.toFixed(3);
+        if (skipCenter) return;
+
         let zoom = this.#boundZoom;
 
         if (zoom === undefined) {
@@ -880,7 +868,7 @@ export class Cropt {
 
         this.setZoom(zoom);
     }
-
+    
     #centerImage() {
         const imgDim = this.elements.preview.getBoundingClientRect();
         const vpDim = this.elements.viewport.getBoundingClientRect();
@@ -891,6 +879,6 @@ export class Cropt {
         const x = vpLeft - (imgDim.width - vpDim.width) / 2;
         const y = vpTop - (imgDim.height - vpDim.height) / 2;
 
-        this.#updateCenterPoint(new Transform(x, y, this.#scale));
+        this.#updateCenterPoint({x, y, scale: this.#scale});
     }
 }
