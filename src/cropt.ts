@@ -108,9 +108,7 @@ export class Cropt {
     
     #boundZoom: number | undefined = undefined;
     #scale = 1;
-    #keyDownHandler: ((ev: KeyboardEvent) => void) | null = null;
-    #zoomInputHandler: (() => void) | null = null;
-    #wheelHandler: ((ev: WheelEvent) => void) | null = null;
+    #abortController = new AbortController();
     #updateOverlayDebounced = debounce(() => {
         this.#updateOverlay();
     }, 100);
@@ -315,15 +313,7 @@ export class Cropt {
     }
 
     destroy() {
-        if (this.#keyDownHandler) {
-            document.removeEventListener("keydown", this.#keyDownHandler);
-        }
-        if (this.#zoomInputHandler) {
-            this.elements.zoomer.removeEventListener("input", this.#zoomInputHandler);
-        }
-        if (this.#wheelHandler) {
-            this.elements.boundary.removeEventListener("wheel", this.#wheelHandler);
-        }
+        this.#abortController.abort();
         this.element.removeChild(this.elements.boundary);
         this.element.classList.remove("cropt-container");
         this.element.removeChild(this.elements.zoomerWrap);
@@ -475,11 +465,11 @@ export class Cropt {
             rightStartX = ev.pageX;
             rightStartWidth = this.options.viewport.width;
 
-            document.addEventListener("pointermove", rightPointerMove);
-            document.addEventListener("pointerup", rightPointerUp);
+            document.addEventListener("pointermove", rightPointerMove, { signal: this.#abortController.signal });
+            document.addEventListener("pointerup", rightPointerUp, { signal: this.#abortController.signal });
         };
 
-        this.elements.resizeHandleRight.addEventListener("pointerdown", rightPointerDown);
+        this.elements.resizeHandleRight.addEventListener("pointerdown", rightPointerDown, { signal: this.#abortController.signal });
 
         // Bottom handle - adjusts height
         let bottomStartY = 0;
@@ -508,11 +498,11 @@ export class Cropt {
             bottomStartY = ev.pageY;
             bottomStartHeight = this.options.viewport.height;
 
-            document.addEventListener("pointermove", bottomPointerMove);
-            document.addEventListener("pointerup", bottomPointerUp);
+            document.addEventListener("pointermove", bottomPointerMove, { signal: this.#abortController.signal });
+            document.addEventListener("pointerup", bottomPointerUp, { signal: this.#abortController.signal });
         };
 
-        this.elements.resizeHandleBottom.addEventListener("pointerdown", bottomPointerDown);
+        this.elements.resizeHandleBottom.addEventListener("pointerdown", bottomPointerDown, { signal: this.#abortController.signal });
     }
 
     #getUnscaledCanvas(p: CropPoints) {
@@ -692,9 +682,9 @@ export class Cropt {
             originalY = ev.pageY;
             this.#setDragState(true, this.elements.preview);
 
-            this.elements.overlay.addEventListener("pointermove", pointerMove);
-            this.elements.overlay.addEventListener("pointerup", pointerUp);
-            this.elements.overlay.addEventListener("pointerout", pointerUp);
+            this.elements.overlay.addEventListener("pointermove", pointerMove, { signal: this.#abortController.signal });
+            this.elements.overlay.addEventListener("pointerup", pointerUp, { signal: this.#abortController.signal });
+            this.elements.overlay.addEventListener("pointerout", pointerUp, { signal: this.#abortController.signal });
         };
 
         let keyDown = (ev: KeyboardEvent) => {
@@ -714,9 +704,8 @@ export class Cropt {
             }
         };
 
-        this.elements.overlay.addEventListener("pointerdown", pointerDown);
-        document.addEventListener("keydown", keyDown);
-        this.#keyDownHandler = keyDown;
+        this.elements.overlay.addEventListener("pointerdown", pointerDown, { signal: this.#abortController.signal });
+        document.addEventListener("keydown", keyDown, { signal: this.#abortController.signal });
     }
 
     #initializeZoom() {
@@ -738,10 +727,8 @@ export class Cropt {
             this.setZoom(this.#scale + delta * this.#scale);
         };
 
-        this.#zoomInputHandler = change;
-        this.#wheelHandler = scroll;
-        this.elements.zoomer.addEventListener("input", this.#zoomInputHandler);
-        this.elements.boundary.addEventListener("wheel", this.#wheelHandler);
+        this.elements.zoomer.addEventListener("input", change, { signal: this.#abortController.signal });
+        this.elements.boundary.addEventListener("wheel", scroll, { signal: this.#abortController.signal });
     }
 
     #onZoom() {
