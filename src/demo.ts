@@ -83,7 +83,7 @@ function demoMain() {
     const cropt = new Cropt(cropEl, options);
     cropt.bind(photoSrc);
     // If wanting to pass in preset image-transform/viewport; do this way:
-    // const set = {transform:{x:-736.431,y:-1298.56,scale:0.585,origin:{x:897.296,y:1458.98}},viewport:{width:220,height:220,borderRadius:'13%'}};
+    // const set = {"transform":{"x":-857,"y":-752,"scale":0.685,"rotate":0,"origin":{"x":1017.26,"y":911}},"viewport":{"width":252,"height":128,"borderRadius":"33%"}}
     // cropt.bind(photoSrc, set);
 
     resultBtn.onclick = function () {

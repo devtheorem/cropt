@@ -105,6 +105,7 @@ export class Cropt {
         zoomerInputClass: "cr-slider",
         resizeBars: false,
     };
+    
     #boundZoom: number | undefined = undefined;
     #scale = 1;
     #keyDownHandler: ((ev: KeyboardEvent) => void) | null = null;
@@ -184,12 +185,15 @@ export class Cropt {
 
                 // defer restore to next frame (after layout)
                 setTimeout(() => {
-                    this.#updateZoomLimits(true);
+                    // const transformReset = {x: 0, y: 0, scale: 1, rotate: 0, origin: {x: 0, y: 0}}
+                    // this.#previewTransform(transformReset);
+                    this.#updateZoomLimits(true); // skipping center
                     this.setZoom(set.transform.scale);
                     this.#previewTransform(set.transform)
+                    this.#updateOverlay();
                 }, 0);
             } else {
-                this.#updatePropertiesFromImage();
+                this.#initPropertiesFromImage();
             }
         });
     }
@@ -281,7 +285,7 @@ export class Cropt {
     }
 
     refresh() {
-        this.#updatePropertiesFromImage();
+        this.#initPropertiesFromImage();
     }
 
     setOptions(options: RecursivePartial<CroptOptions>) {
@@ -808,7 +812,7 @@ export class Cropt {
         overlay.style.left = `${imgData.left - boundRect.left}px`;
     }
 
-    #updatePropertiesFromImage() {
+    #initPropertiesFromImage() {
         if (!this.#isVisible()) {
             return;
         }
@@ -818,13 +822,13 @@ export class Cropt {
         this.#previewTransform(transformReset);
         this.#updateZoomLimits();
 
-        transformReset.scale = this.#scale
+        transformReset.scale = this.#scale;
         this.#previewTransform(transformReset);
         this.#centerImage();
         this.#updateOverlay();
     }
 
-    #updateCenterPoint(transform: {x: number, y: number, scale: number, rotate?: number, origin?: {x: number, y: number}}) {
+    #updateCenterPoint(transform: {x: number, y: number, scale: number, rotate: number, origin?: {x: number, y: number}}) {
         const vpData = this.elements.viewport.getBoundingClientRect();
         const data = this.elements.preview.getBoundingClientRect();
         const { origin } = this.#previewTransform()
@@ -879,6 +883,6 @@ export class Cropt {
         const x = vpLeft - (imgDim.width - vpDim.width) / 2;
         const y = vpTop - (imgDim.height - vpDim.height) / 2;
 
-        this.#updateCenterPoint({x, y, scale: this.#scale});
+        this.#updateCenterPoint({x, y, scale: this.#scale, rotate: 0});
     }
 }
