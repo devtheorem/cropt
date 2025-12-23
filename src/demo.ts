@@ -60,6 +60,7 @@ const demoConfigs: Record<string, DemoConfig> = {
             viewport: { width: 220, height: 220, borderRadius: "50%" },
             mouseWheelZoom: "on",
             zoomerInputClass: "form-range",
+            enableKeypress: true,
         },
         preset: null,
         hideControls: false,
@@ -71,7 +72,6 @@ const demoConfigs: Record<string, DemoConfig> = {
         options: {
             viewport: { width: 1, height: 1, borderRadius: "0%" },
             enableZoomSlider: false,
-            enableKeypress: false,
         },
         preset: {
             transform: {

@@ -110,7 +110,7 @@ export class Cropt {
         },
         zoomerInputClass: "cr-slider",
         enableZoomSlider: true,
-        enableKeypress: true,
+        enableKeypress: false,
         resizeBars: false,
         enableRotateBtns: false,
     };
@@ -815,7 +815,13 @@ export class Cropt {
 
         if (this.options.enableKeypress) {
             let keyDown = (ev: KeyboardEvent) => {
-                if (document.activeElement !== this.elements.viewport) {
+                // for user-input fields we skip
+                if (
+                    document.activeElement &&
+                    ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(
+                        document.activeElement.nodeName,
+                    )
+                ) {
                     return;
                 }
 
