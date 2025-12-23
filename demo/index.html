@@ -69,27 +69,51 @@
 
                         <p class="mb-4">
                             <a href="https://github.com/devtheorem/cropt" class="btn btn-primary">
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="16"
-                                    height="16"
-                                    fill="currentColor"
-                                    class="bi bi-github"
-                                    viewBox="0 0 16 16"
-                                >
-                                    <path
-                                        d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"
-                                    />
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-github" viewBox="0 0 16 16">
+                                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
                                 </svg>
                                 View Readme
                             </a>
                         </p>
                     </div>
                     <div class="col-12 col-md-5">
-                        <div id="crop-demo"></div>
+                        <div class="tab-content" id="demo-tabs-content">
+                            <div class="tab-pane fade show active" id="demo1" role="tabpanel">
+                                <p class="text-muted mb-2 text-center">Basic with external viewport adjusting:</p>
+                                <div id="crop-demo" class="demo-container"></div>
+                            </div>
+                            <div class="tab-pane fade" id="demo2" role="tabpanel">
+                                <p class="text-muted mb-2 text-center">Cropping from restored configuration:</p>
+                                <div id="crop-demo-2" class="demo-container"></div>
+                            </div>
+                            <div class="tab-pane fade" id="demo3" role="tabpanel">
+                                <p class="text-muted mb-2 text-center">Rotation and resize handles enabled:</p>
+                                <div id="crop-demo-3" class="demo-container"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+
+        <div class="container-md mt-3">
+            <ul class="nav nav-tabs" id="demo-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="demo1-tab" data-bs-toggle="tab" data-bs-target="#demo1" type="button" role="tab">
+                        Demo 1
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="demo2-tab" data-bs-toggle="tab" data-bs-target="#demo2" type="button" role="tab">
+                        Demo 2: Restored Config
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="demo3-tab" data-bs-toggle="tab" data-bs-target="#demo3" type="button" role="tab">
+                        Demo 3: Resizable & Rotation
+                    </button>
+                </li>
+            </ul>
         </div>
 
         <div class="container-md">
@@ -99,17 +123,8 @@
                 </div>
                 <div class="col-5 text-end">
                     <button id="result-btn" class="btn btn-primary">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            fill="currentColor"
-                            class="bi bi-crop"
-                            viewBox="0 0 16 16"
-                        >
-                            <path
-                                d="M3.5.5A.5.5 0 0 1 4 1v13h13a.5.5 0 0 1 0 1h-2v2a.5.5 0 0 1-1 0v-2H3.5a.5.5 0 0 1-.5-.5V4H1a.5.5 0 0 1 0-1h2V1a.5.5 0 0 1 .5-.5zm2.5 3a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4H6.5a.5.5 0 0 1-.5-.5z"
-                            />
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-crop" viewBox="0 0 16 16">
+                            <path d="M3.5.5A.5.5 0 0 1 4 1v13h13a.5.5 0 0 1 0 1h-2v2a.5.5 0 0 1-1 0v-2H3.5a.5.5 0 0 1-.5-.5V4H1a.5.5 0 0 1 0-1h2V1a.5.5 0 0 1 .5-.5zm2.5 3a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v8a.5.5 0 0 1-1 0V4H6.5a.5.5 0 0 1-.5-.5z"/>
                         </svg>
                         Get Result
                     </button>
@@ -117,43 +132,25 @@
             </div>
             <div class="row">
                 <div class="col-12 col-md-7">
-                    <pre
-                        class="border border-5 border-primary border-top-0 border-end-0 border-bottom-0"
-                    ><code class="language-javascript hljs" id="code-el"></code></pre>
+                    <pre class="border border-5 border-primary border-top-0 border-end-0 border-bottom-0">
+                        <code class="language-javascript hljs" id="code-el"></code>
+                    </pre>
                 </div>
                 <div class="col-12 col-md-5">
-                    <form>
+                    <div id="notes">
+                    </div>
+                    <form id="controls">
                         <div class="mb-2">
-                            <label for="borderRadiusRange" class="form-label">
-                                Viewport border-radius
-                            </label>
-                            <input
-                                id="borderRadiusRange"
-                                type="range"
-                                class="form-range"
-                                min="0"
-                                max="50"
-                            />
+                            <label for="borderRadiusRange" class="form-label">Viewport border-radius</label>
+                            <input id="borderRadiusRange" type="range" class="form-range" min="0" max="50" />
                         </div>
                         <div class="mb-2">
                             <label for="widthRange" class="form-label">Viewport width</label>
-                            <input
-                                id="widthRange"
-                                type="range"
-                                class="form-range"
-                                min="25"
-                                max="275"
-                            />
+                            <input id="widthRange" type="range" class="form-range" min="25" max="275" />
                         </div>
                         <div class="mb-3">
                             <label for="heightRange" class="form-label">Viewport height</label>
-                            <input
-                                id="heightRange"
-                                type="range"
-                                class="form-range"
-                                min="25"
-                                max="275"
-                            />
+                            <input id="heightRange" type="range" class="form-range" min="25" max="275" />
                         </div>
                         <div class="mb-3">
                             <div class="form-floating">
