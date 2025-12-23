@@ -206,12 +206,12 @@ export class Cropt {
 
                 // defer restore to next frame (after layout)
                 setTimeout(async () => {
-                    this.#updateZoomLimits(true); // skipping center
-
                     // Apply rotation first (physically rotates the image)
                     if (set.transform.rotate) {
-                        await this.setRotation(set.transform.rotate, true);
+                        await this.setRotation(set.transform.rotate);
                     }
+
+                    this.#updateZoomLimits(true); // skipping center
 
                     // Then apply scale and position
                     this.setZoom(set.transform.scale);
@@ -340,7 +340,7 @@ export class Cropt {
         this.elements.zoomer.dispatchEvent(event); // triggers this.#onZoom call
     }
 
-    async setRotation(degrees: number, updateTransform = true) {
+    async setRotation(degrees: number) {
         if( degrees === undefined ) return;
 
         // Normalize to 0, 90, 180, 270
@@ -350,10 +350,10 @@ export class Cropt {
         if( deltaRotation === 0 ) return; // No change
 
         this.#rotation = normalizedDegrees;
-        if( !updateTransform ) return;
 
         // Physically rotate the image by drawing it on a rotated canvas
         await this.#rotateImage(deltaRotation);
+        // reset the properties (zoom, etc)
         this.#initPropertiesFromImage();
     }
 

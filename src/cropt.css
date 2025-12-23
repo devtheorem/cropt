@@ -99,5 +99,10 @@
     cursor: ns-resize;
 }
 
-
+.cropt-container .cr-rotate-btn {
+    border: 2px solid #667;
+    border-radius: 25%;
+    background: transparent;
+    cursor: pointer;
+}
 
