@@ -185,7 +185,7 @@ function bindControlEvents() {
     const widthRange = getElById("widthRange") as HTMLInputElement;
     widthRange.oninput = () => {
         const activeConfig = demoConfigs[activeDemo];
-        activeConfig.options.viewport.width = +widthRange.value;
+        activeConfig.options.viewport.width = Math.round(+widthRange.value);
         setCode();
         cropt?.setOptions(activeConfig.options);
     };
@@ -193,7 +193,7 @@ function bindControlEvents() {
     const heightRange = getElById("heightRange") as HTMLInputElement;
     heightRange.oninput = () => {
         const activeConfig = demoConfigs[activeDemo];
-        activeConfig.options.viewport.height = +heightRange.value;
+        activeConfig.options.viewport.height = Math.round(+heightRange.value);
         setCode();
         cropt?.setOptions(activeConfig.options);
     };
