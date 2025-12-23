@@ -74,10 +74,11 @@ export interface CroptOptions {
         borderRadius: string;
     };
     zoomerInputClass: string;
-    resizeBars?: boolean;
-    enableRotate?: boolean;
+    enableZoomSlider?: boolean; // show the physical slider (pinch zoom will work regardless)
+    enableKeypress?: boolean; // listen to arrow keys
+    resizeBars?: boolean; // allow on-picture resize bars
+    enableRotateBtns?: boolean; // passing in rotation will work regardless, but no btns will be visible
 }
-
 interface CropPoints {
     left: number;
     top: number;
@@ -108,8 +109,10 @@ export class Cropt {
             borderRadius: "0px",
         },
         zoomerInputClass: "cr-slider",
+        enableZoomSlider: true,
+        enableKeypress: true,
         resizeBars: false,
-        enableRotate: false,
+        enableRotateBtns: false,
     };
 
     #boundZoom: number | undefined = undefined;
@@ -150,12 +153,7 @@ export class Cropt {
         this.elements.boundary.appendChild(this.elements.controls);
         this.#setupControlOverlay();
 
-        this.elements.zoomer.type = "range";
-        this.elements.zoomer.step = "0.001";
-        this.elements.zoomer.value = "1";
-        this.elements.zoomer.setAttribute("aria-label", "zoom");
-
-        if (this.options.enableRotate) {
+        if (this.options.enableRotateBtns) {
             this.elements.rotateLeft.type = "button";
             this.elements.rotateLeft.innerHTML = "↺";
             this.elements.rotateLeft.setAttribute("aria-label", "rotate left");
@@ -169,7 +167,14 @@ export class Cropt {
             this.elements.toolBar.appendChild(this.elements.rotateLeft);
             this.elements.toolBar.appendChild(this.elements.rotateRight);
         }
-        this.elements.toolBar.appendChild(this.elements.zoomer);
+
+        if (this.options.enableZoomSlider) {
+            this.elements.zoomer.type = "range";
+            this.elements.zoomer.step = "0.001";
+            this.elements.zoomer.value = "1";
+            this.elements.zoomer.setAttribute("aria-label", "zoom");
+            this.elements.toolBar.appendChild(this.elements.zoomer);
+        }
 
         this.element.appendChild(this.elements.boundary);
         this.element.appendChild(this.elements.toolBar);
@@ -235,6 +240,8 @@ export class Cropt {
     }
 
     #getPoints() {
+        const getPoint = (pos: number) => Math.round(Math.max(0, pos / this.#scale));
+
         const imgData = this.elements.preview.getBoundingClientRect();
         const vpData = this.elements.viewport.getBoundingClientRect();
         const oWidth = this.elements.viewport.offsetWidth;
@@ -245,15 +252,11 @@ export class Cropt {
         const top = vpData.top - imgData.top;
 
         return {
-            left: this.#getPoint(left),
-            top: this.#getPoint(top),
-            right: this.#getPoint(left + oWidth + widthDiff),
-            bottom: this.#getPoint(top + oHeight + heightDiff),
+            left: getPoint(left),
+            top: getPoint(top),
+            right: getPoint(left + oWidth + widthDiff),
+            bottom: getPoint(top + oHeight + heightDiff),
         };
-    }
-
-    #getPoint(pos: number) {
-        return Math.round(Math.max(0, pos / this.#scale));
     }
 
     /**
@@ -806,27 +809,30 @@ export class Cropt {
             });
         };
 
-        let keyDown = (ev: KeyboardEvent) => {
-            if (document.activeElement !== this.elements.viewport) {
-                return;
-            }
-
-            if (ev.shiftKey && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) {
-                ev.preventDefault();
-                let zoomVal = parseFloat(this.elements.zoomer.value);
-                let stepVal = ev.key === "ArrowUp" ? 0.01 : -0.01;
-                this.setZoom(zoomVal + stepVal);
-            } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.key)) {
-                ev.preventDefault();
-                let [deltaX, deltaY] = getArrowKeyDeltas(ev.key);
-                this.#assignTransformCoordinates(deltaX, deltaY);
-            }
-        };
-
         this.elements.overlay.addEventListener("pointerdown", pointerDown, {
             signal: this.#abortController.signal,
         });
-        document.addEventListener("keydown", keyDown, { signal: this.#abortController.signal });
+
+        if (this.options.enableKeypress) {
+            let keyDown = (ev: KeyboardEvent) => {
+                if (document.activeElement !== this.elements.viewport) {
+                    return;
+                }
+
+                if (ev.shiftKey && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) {
+                    ev.preventDefault();
+                    let zoomVal = parseFloat(this.elements.zoomer.value);
+                    let stepVal = ev.key === "ArrowUp" ? 0.01 : -0.01;
+                    this.setZoom(zoomVal + stepVal);
+                } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.key)) {
+                    ev.preventDefault();
+                    let [deltaX, deltaY] = getArrowKeyDeltas(ev.key);
+                    this.#assignTransformCoordinates(deltaX, deltaY);
+                }
+            };
+
+            document.addEventListener("keydown", keyDown, { signal: this.#abortController.signal });
+        }
     }
 
     #initializeZoom() {
@@ -891,7 +897,7 @@ export class Cropt {
     }
 
     #initializeRotate() {
-        if (!this.options.enableRotate) return;
+        if (!this.options.enableRotateBtns) return;
 
         this.elements.rotateLeft.addEventListener(
             "click",

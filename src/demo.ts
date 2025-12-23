@@ -33,8 +33,10 @@ interface DemoConfig {
         viewport: { width: number; height: number; borderRadius: string };
         mouseWheelZoom?: "off" | "on" | "ctrl";
         zoomerInputClass?: string;
+        enableZoomSlider?: boolean;
+        enableKeypress?: boolean;
         resizeBars?: boolean;
-        enableRotate?: boolean;
+        enableRotateBtns?: boolean;
     };
     preset: null | {
         transform: {
@@ -68,6 +70,8 @@ const demoConfigs: Record<string, DemoConfig> = {
         id: "crop-demo-2",
         options: {
             viewport: { width: 1, height: 1, borderRadius: "0%" },
+            enableZoomSlider: false,
+            enableKeypress: false,
         },
         preset: {
             transform: {
@@ -94,7 +98,7 @@ const demoConfigs: Record<string, DemoConfig> = {
         options: {
             viewport: { width: 160, height: 220, borderRadius: "7%" },
             resizeBars: true,
-            enableRotate: true,
+            enableRotateBtns: true,
         },
         preset: null,
         hideControls: true,

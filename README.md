@@ -57,12 +57,33 @@ Default value: `"cr-slider"`
 
 Optionally set a different class on the zoom range input to customize styling (e.g. set to `"form-range"` when using Bootstrap).
 
+### `enableZoomSlider`
+
+Type: `boolean`
+Default value: `true`
+
+Toggle if hiding the zoom slider.
+
+### `enableKeypress`
+
+Type: `boolean`
+Default value: `true`
+
+Toggle if allow listening for keyboard arrow keys for moving image.
+
 ### `resizeBars`
 
 Type: `boolean`
 Default value: `false`
 
 Optionally to show resize handles (grab-bars) to adjust the viewport width/height.
+
+### `enableRotateBtns`
+
+Type: `boolean`
+Default value: `false`
+
+Toggle if showing rotation buttons beside the zoom slider bar. If both are off (enableZoomSlider and this), the toolbar is hidden.
 
 ## Methods
 
