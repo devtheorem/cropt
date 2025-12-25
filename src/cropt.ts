@@ -13,27 +13,15 @@ function setZoomerVal(value: number, zoomer: HTMLInputElement) {
     zoomer.value = Math.max(zMin, Math.min(zMax, value)).toFixed(3);
 }
 
-function loadImage(src: string | Blob): Promise<HTMLImageElement> {
+function loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const img = new Image();
 
-        const cleanup = () => {
-            if (img.src.startsWith('blob:')) {
-                URL.revokeObjectURL(img.src);
-            }
-        };
-
         img.onload = () => {
-            cleanup();
             resolve(img);
         };
-
-        img.onerror = (ev) => {
-            cleanup();
-            reject(new Error(`Failed to load image from ${typeof src === 'string' ? 'URL' : 'Blob'}`));
-        };
-
-        img.src = typeof src === 'string' ? src : URL.createObjectURL(src);
+        img.onerror = reject;
+        img.src = src;
     });
 }
 
@@ -205,7 +193,7 @@ export class Cropt {
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
     bind(
-        src: string | Blob,
+        src: string,
         preset?:
             | number
             | {

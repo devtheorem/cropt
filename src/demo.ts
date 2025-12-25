@@ -234,7 +234,10 @@ function bindFileUpload() {
         if (fileInput.files?.[0]) {
             const file = fileInput.files[0];
             if (cropt) {
-                cropt.bind(file);
+                if (imgSrc.startsWith('blob')) URL.revokeObjectURL(imgSrc)
+                imgSrc = URL.createObjectURL(file)
+                cropt.bind(imgSrc);
+                setCode();
             }
         }
     };
