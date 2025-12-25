@@ -13,15 +13,27 @@ function setZoomerVal(value: number, zoomer: HTMLInputElement) {
     zoomer.value = Math.max(zMin, Math.min(zMax, value)).toFixed(3);
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
-    const img = new Image();
+function loadImage(src: string | Blob): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
 
-    return new Promise(function (resolve, reject) {
+        const cleanup = () => {
+            if (img.src.startsWith('blob:')) {
+                URL.revokeObjectURL(img.src);
+            }
+        };
+
         img.onload = () => {
+            cleanup();
             resolve(img);
         };
-        img.onerror = reject;
-        img.src = src;
+
+        img.onerror = (ev) => {
+            cleanup();
+            reject(new Error(`Failed to load image from ${typeof src === 'string' ? 'URL' : 'Blob'}`));
+        };
+
+        img.src = typeof src === 'string' ? src : URL.createObjectURL(src);
     });
 }
 
@@ -118,6 +130,8 @@ export class Cropt {
     #boundZoom: number | undefined = undefined;
     #scale = 1;
     #rotation = 0;
+    // when displaying in UI or experting to jpeg, use this color for transparency sections
+    #transparencyColor = '#fff';
     #abortController = new AbortController();
     #updateOverlayDebounced = debounce(() => {
         this.#updateOverlay();
@@ -179,7 +193,7 @@ export class Cropt {
         this.element.appendChild(this.elements.boundary);
         this.element.appendChild(this.elements.toolBar);
 
-        this.#setOptionsCss();
+        this.#setViewportCss();
         this.#initDraggable();
         this.#initializeZoom();
         this.#initializeRotate();
@@ -191,7 +205,7 @@ export class Cropt {
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
     bind(
-        src: string,
+        src: string | Blob,
         preset?:
             | number
             | {
@@ -214,7 +228,7 @@ export class Cropt {
         }
 
         return loadImage(src).then(async (img) => {
-            this.#replaceImage(img);
+            this.#replaceImage(img); // force-replace image node (prevents caching, etc)
 
             if (typeof preset === "object") {
                 this.setOptions({ viewport: preset.viewport });
@@ -230,7 +244,7 @@ export class Cropt {
 
                     // Then apply scale and position
                     this.setZoom(preset.transform.scale);
-                    this.#previewTransform(preset.transform);
+                    this.#transformPreview(preset.transform);
                     this.#updateOverlay();
                 }, 0);
             } else {
@@ -268,7 +282,7 @@ export class Cropt {
     get() {
         return {
             crop: this.#getPoints(),
-            transform: this.#previewTransform(),
+            transform: this.#transformPreview(),
             viewport: {
                 width: Math.round(this.options.viewport.width),
                 height: Math.round(this.options.viewport.height),
@@ -280,14 +294,16 @@ export class Cropt {
     /**
      * Returns a Promise resolving to an HTMLCanvasElement object for the cropped image.
      * If size is specified, the image will be scaled with its longest side set to size.
+     * Otherwise (size = null), full-size cropped area is returned
      */
-    toCanvas(size: number | null = null) {
+    toCanvas(size: number | null = null, type: string = '') {
         const vpRect = this.elements.viewport.getBoundingClientRect();
         const ratio = vpRect.width / vpRect.height;
         const points = this.#getPoints();
         let width = points.right - points.left;
         let height = points.bottom - points.top;
 
+        // resize only if size passed in
         if (size !== null) {
             if (ratio > 1) {
                 width = size;
@@ -298,7 +314,7 @@ export class Cropt {
             }
         }
 
-        return Promise.resolve(this.#getCanvas(points, width, height));
+        return Promise.resolve(this.#getCanvas(points, width, height, type));
     }
 
     toBlob(size: number | null = null, type = "image/webp", quality = 1): Promise<Blob> {
@@ -307,7 +323,7 @@ export class Cropt {
         }
 
         return new Promise((resolve, reject) => {
-            this.toCanvas(size).then((canvas) => {
+            this.toCanvas(size,type).then((canvas) => {
                 canvas.toBlob(
                     (blob) => {
                         if (blob === null) {
@@ -337,7 +353,7 @@ export class Cropt {
 
         // changed: removed structuredClone: slow, and would fail passing functions in options
         this.options = { ...this.options, ...options } as CroptOptions;
-        this.#setOptionsCss();
+        this.#setViewportCss();
 
         if (
             this.options.viewport.width !== curWidth ||
@@ -420,7 +436,7 @@ export class Cropt {
 
     // adjust preview tranform styles (& transformOrigin)
     // NOTE: rotate is handled by physically rotating the image, not CSS transform
-    #previewTransform(data?: {
+    #transformPreview(data?: {
         x?: number;
         y?: number;
         scale?: number;
@@ -477,14 +493,15 @@ export class Cropt {
         return { x, y, scale, rotate: this.#rotation, origin: parseOrigin() };
     }
 
-    #setOptionsCss() {
+    #setViewportCss() {
         this.elements.zoomer.className = this.options.zoomerInputClass;
         const viewport = this.elements.viewport;
         viewport.style.borderRadius = this.options.viewport.borderRadius;
         viewport.style.width = this.options.viewport.width + "px";
         viewport.style.height = this.options.viewport.height + "px";
 
-        this.#updateControlHandlePositions(); // move controls overlayed (when necessary)
+        // whenever viewport changes - need to move controls overlayed!
+        this.#updateControlHandlePositions(); 
     }
 
     #setupControlOverlay() {
@@ -511,7 +528,8 @@ export class Cropt {
 
         // Initialize resize handlers
         this.#initControlHandlers();
-        this.#updateControlHandlePositions();
+        // Hack - delay setup for UI layout to finalize (for larger images esp)
+        setTimeout( ()=> this.#updateControlHandlePositions(), 200 );
     }
 
     #updateControlHandlePositions() {
@@ -553,7 +571,7 @@ export class Cropt {
             const newWidth = Math.min(maxWidth, Math.max(MIN_SIZE, rightStartWidth + deltaX));
 
             this.options.viewport.width = newWidth;
-            this.#setOptionsCss();
+            this.#setViewportCss();
         };
 
         const rightPointerUp = () => {
@@ -592,7 +610,7 @@ export class Cropt {
             const newHeight = Math.min(maxHeight, Math.max(MIN_SIZE, bottomStartHeight + deltaY));
 
             this.options.viewport.height = newHeight;
-            this.#setOptionsCss();
+            this.#setViewportCss();
         };
 
         const bottomPointerUp = () => {
@@ -638,8 +656,11 @@ export class Cropt {
 
         return canvas;
     }
-
-    #getCanvas(points: CropPoints, width: number, height: number) {
+    
+    #getCanvas(points: CropPoints, width: number, height: number, type: string) {
+        // cannot draw from a canvas into itself while resizing — it causes visual corruption
+        // ping-pong oc -> buffer -> oc ....
+        console.time('getCanvas')
         const oc = this.#getUnscaledCanvas(points);
         const octx = oc.getContext("2d");
         const buffer = document.createElement("canvas");
@@ -652,35 +673,44 @@ export class Cropt {
         if (ctx === null || octx === null || bctx === null) {
             throw new Error("Canvas context cannot be null");
         }
-
-        let cur = {
+        
+        let to = {
             width: oc.width,
             height: oc.height,
         };
 
-        while (cur.width * 0.5 > canvas.width) {
+        while (to.width > canvas.width * 2) {
             // step down size by one half for smooth scaling
-            let curWidth = cur.width;
-            let curHeight = cur.height;
+            let w = to.width;
+            let h = to.height;
 
-            cur = {
-                width: Math.floor(cur.width * 0.5),
-                height: Math.floor(cur.height * 0.5),
+            to = {
+                width: Math.floor(to.width / 2),
+                height: Math.floor(to.height / 2),
             };
 
             // write oc to buffer
-            buffer.width = curWidth;
-            buffer.height = curHeight;
+            buffer.width = w;
+            buffer.height = h;
             bctx.clearRect(0, 0, buffer.width, buffer.height);
             bctx.drawImage(oc, 0, 0);
 
             // clear oc
-            octx.clearRect(0, 0, curWidth, curHeight);
+            octx.clearRect(0, 0, w, h);
 
-            octx.drawImage(buffer, 0, 0, curWidth, curHeight, 0, 0, cur.width, cur.height);
+            octx.drawImage(buffer, 0, 0, w, h, 0, 0, to.width, to.height);
         }
 
-        ctx.drawImage(oc, 0, 0, cur.width, cur.height, 0, 0, canvas.width, canvas.height);
+        // if jpeg we fill with transparencyColor in case the canvas has alpha
+        if (type === 'image/jpeg') {
+            ctx.fillStyle = this.#transparencyColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        ctx.drawImage(oc, 0, 0, to.width, to.height, 0, 0, canvas.width, canvas.height);
+        
+        oc.width = oc.height = 0; // ios hint to free
+        buffer.width = buffer.height = 0;
+        console.timeEnd('getCanvas')
         return canvas;
     }
 
@@ -717,7 +747,7 @@ export class Cropt {
     #assignTransformCoordinates(deltaX: number, deltaY: number) {
         const imgRect = this.elements.preview.getBoundingClientRect();
         const vpRect = this.elements.viewport.getBoundingClientRect();
-        const transform = this.#previewTransform();
+        const transform = this.#transformPreview();
 
         transform.y += clampDelta(vpRect.top - imgRect.top, deltaY, vpRect.bottom - imgRect.bottom);
         transform.x += clampDelta(vpRect.left - imgRect.left, deltaX, vpRect.right - imgRect.right);
@@ -842,15 +872,17 @@ export class Cropt {
     }
 
     #initializeZoom() {
-        const change = () => {
-            this.#onZoom();
-        };
+        this.elements.zoomer.addEventListener("input", ()=>this.#onZoom(), {
+            signal: this.#abortController.signal,
+        });
+
+        if (this.options.mouseWheelZoom === "off") return;
 
         const scroll = (ev: WheelEvent) => {
             const optionVal = this.options.mouseWheelZoom;
             let delta = 0;
 
-            if (optionVal === "off" || (optionVal === "ctrl" && !ev.ctrlKey)) {
+            if (optionVal === "ctrl" && !ev.ctrlKey) {
                 return;
             } else if (ev.deltaY) {
                 delta = (ev.deltaY * -1) / 2000;
@@ -860,19 +892,16 @@ export class Cropt {
             this.setZoom(this.#scale + delta * this.#scale);
         };
 
-        this.elements.zoomer.addEventListener("input", change, {
-            signal: this.#abortController.signal,
-        });
         this.elements.boundary.addEventListener("wheel", scroll, {
             signal: this.#abortController.signal,
         });
     }
 
     #onZoom() {
-        const transform = this.#previewTransform();
+        const transform = this.#transformPreview();
         this.#scale = parseFloat(this.elements.zoomer.value);
         transform.scale = this.#scale;
-        // this.#previewTransform(transform)
+        // this.#transformPreview(transform)
 
         const boundaries = this.#getVirtualBoundaries();
         const transBoundaries = boundaries.translate;
@@ -898,7 +927,7 @@ export class Cropt {
             transform.y = transBoundaries.minY;
         }
 
-        this.#previewTransform(transform);
+        this.#transformPreview(transform);
         this.#updateOverlayDebounced();
     }
 
@@ -919,6 +948,8 @@ export class Cropt {
 
     #replaceImage(img: HTMLImageElement) {
         this.#setPreviewAttributes(img);
+
+        // replace whole child node with new one - prevents caching issues, attach listeners, etc.
         if (this.elements.preview.parentNode) {
             this.elements.preview.parentNode.replaceChild(img, this.elements.preview);
         }
@@ -927,6 +958,7 @@ export class Cropt {
 
     #setPreviewAttributes(preview: HTMLImageElement) {
         preview.classList.add("cr-image");
+        preview.style.background = this.#transparencyColor; // if transparency want this color to show
         preview.setAttribute("alt", "preview");
         this.#setDragState(false, preview);
     }
@@ -958,11 +990,11 @@ export class Cropt {
 
         // resets values to calculate zoom limits
         const transformReset = { x: 0, y: 0, scale: 1, origin: { x: 0, y: 0 } };
-        this.#previewTransform(transformReset);
+        this.#transformPreview(transformReset);
         this.#updateZoomLimits();
 
         transformReset.scale = this.#scale;
-        this.#previewTransform(transformReset);
+        this.#transformPreview(transformReset);
         this.#centerImage();
         this.#updateOverlay();
     }
@@ -975,7 +1007,7 @@ export class Cropt {
     }) {
         const vpData = this.elements.viewport.getBoundingClientRect();
         const data = this.elements.preview.getBoundingClientRect();
-        const { origin } = this.#previewTransform();
+        const { origin } = this.#transformPreview();
 
         const top = vpData.top - data.top + vpData.height / 2;
         const left = vpData.left - data.left + vpData.width / 2;
@@ -987,7 +1019,7 @@ export class Cropt {
         transform.x = Math.round(transform.x - (center.x - (origin.x ?? 0)) * (1 - this.#scale));
         transform.y = Math.round(transform.y - (center.y - (origin.y ?? 0)) * (1 - this.#scale));
 
-        this.#previewTransform({ ...transform, origin: center });
+        this.#transformPreview({ ...transform, origin: center });
     }
 
     #updateZoomLimits(skipCenter = false) {

@@ -233,16 +233,9 @@ function bindFileUpload() {
     fileInput.onchange = () => {
         if (fileInput.files?.[0]) {
             const file = fileInput.files[0];
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-                const result = e.target?.result;
-                if (typeof result === "string" && cropt) {
-                    cropt.bind(result);
-                }
-            };
-
-            reader.readAsDataURL(file);
+            if (cropt) {
+                cropt.bind(file);
+            }
         }
     };
 }

@@ -8,7 +8,7 @@ We thank our contributors for helping make Cropt even better:
     Originally based on Croppie, but rewritten as a modern ES6
 
 [Filipe Laborde](https://github.com/mindflowgo/)
-    - Croppie Resize handle grabbers & get()/set() for restoring zoom/image placement
+    - Croppie-like resize handle grabbers, rotation, get() + preset restoring... all in under 300 lines
 
 ## Quickstart
 First, this is a community project, so the developers and contributors appreciate properly prepared contributions and help by others. Please review the code before making changes to keep with the format of the existing code.
@@ -22,6 +22,8 @@ Clone your fork locally:
 git clone https://github.com/YOUR-USERNAME/cropt.git
 cd cropt
 npm install
+npm run prepare
+npm start
 ```
 
 ### Coding Standards
@@ -36,11 +38,12 @@ Write self-documenting code with clear variable/function names; Add comments for
 ### Project Structure
 cropt/
 ├── src/                    # Source code
-│   ├── cropt.ts            # Main Cropt class
-│   └── demo.ts             # Demo application
-├── dist/                   # Compiled output
-├── docs/                   # Documentation
-├── tests/                  # Test files
+|   ├── cropt.css           # Cropt CSS
+|   ├── cropt.ts            # Cropt code
+│   └── demo.ts             # Demo javascript
+├── demo/                   # Demo assets (index.html, photos, styles)
+├── docs/                   # Documentation (future?)
+├── tests/                  # Test files (future?)
 ├── package.json
 └── README.md               # new options & methods document here!
 
