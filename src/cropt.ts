@@ -1,16 +1,16 @@
+declare global {
+    interface Blob {
+        width?: number;
+        height?: number;
+    }
+}
+
 function debounce<T extends Function>(func: T, wait: number) {
     let timer: number | undefined;
     return (...args: any) => {
         clearTimeout(timer);
         timer = setTimeout(() => func(...args), wait);
     };
-}
-
-function setZoomerVal(value: number, zoomer: HTMLInputElement) {
-    const zMin = parseFloat(zoomer.min);
-    const zMax = parseFloat(zoomer.max);
-
-    zoomer.value = Math.max(zMin, Math.min(zMax, value)).toFixed(3);
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -41,15 +41,13 @@ function getInitialElements() {
     };
 }
 
-function getArrowKeyDeltas(key: string): [number, number] {
-    if (key === "ArrowLeft") {
-        return [2, 0];
-    } else if (key === "ArrowUp") {
-        return [0, 2];
-    } else if (key === "ArrowRight") {
-        return [-2, 0];
-    } else {
-        return [0, -2];
+function getArrowKeyDeltas(key: string): [number, number] | null {
+    switch (key) {
+        case "ArrowLeft": return [2, 0];
+        case "ArrowUp": return [0, 2];
+        case "ArrowRight": return [-2, 0];
+        case "ArrowDown": return [0, -2];
+        default: return null;
     }
 }
 
@@ -78,12 +76,15 @@ export interface CroptOptions {
     enableKeypress?: boolean; // listen to arrow keys
     resizeBars?: boolean; // allow on-picture resize bars
     enableRotateBtns?: boolean; // passing in rotation will work regardless, but no btns will be visible
+    transparencyColor?: string; // what color to show behind transparency colors (or if converting to jpeg)
 }
 interface CropPoints {
     left: number;
     top: number;
     right: number;
     bottom: number;
+    width: number;
+    height: number;
 }
 
 export class Cropt {
@@ -114,10 +115,14 @@ export class Cropt {
         resizeBars: false,
         enableRotateBtns: false,
     };
+    // active settings 
+    #maxZoom = 0.85; // up to 1 possible
+    #viewportMinWidth = 50; // for adjustable, min viewport width
+    #viewportMinHeight = 50; 
 
-    #boundZoom: number | undefined = undefined;
     #scale = 1;
     #rotation = 0;
+    #clearRotationBlob = false; // when we create intermittent blobs (ex. rotate), must clear
     // when displaying in UI or experting to jpeg, use this color for transparency sections
     #transparencyColor = '#fff';
     #abortController = new AbortController();
@@ -136,6 +141,7 @@ export class Cropt {
 
         // changed: removed structuredClone: slow, and would fail passing functions in options
         this.options = { ...this.options, ...options } as CroptOptions;
+        if( this.options.transparencyColor ) this.#transparencyColor = this.options.transparencyColor;
         this.element = element;
         this.element.classList.add("cropt-container");
 
@@ -170,10 +176,12 @@ export class Cropt {
             this.elements.toolBar.appendChild(this.elements.rotateRight);
         }
 
-        if (this.options.enableZoomSlider) {
-            this.elements.zoomer.type = "range";
-            this.elements.zoomer.step = "0.001";
-            this.elements.zoomer.value = "1";
+        this.elements.zoomer.type = "range";
+        this.elements.zoomer.step = "0.001";
+        this.elements.zoomer.value = "1";
+        // zooming can happen with pinch, however when slider enabled, it is visible, otherwise unseen
+        if (this.options.enableZoomSlider) { 
+            this.elements.zoomer.className = this.options.zoomerInputClass;
             this.elements.zoomer.setAttribute("aria-label", "zoom");
             this.elements.toolBar.appendChild(this.elements.zoomer);
         }
@@ -211,10 +219,6 @@ export class Cropt {
             throw new Error("src cannot be empty");
         }
 
-        if (typeof preset !== "object") {
-            this.#boundZoom = preset;
-        }
-
         return loadImage(src).then(async (img) => {
             this.#replaceImage(img); // force-replace image node (prevents caching, etc)
 
@@ -227,16 +231,17 @@ export class Cropt {
                     if (preset.transform.rotate) {
                         await this.setRotation(preset.transform.rotate);
                     }
+                    const zoom = preset.transform.scale;
+                    this.#updateZoomLimits(zoom);
 
-                    this.#updateZoomLimits(true); // skipping center
-
-                    // Then apply scale and position
-                    this.setZoom(preset.transform.scale);
+                    // Finally, override to custom preview positioning
                     this.#transformPreview(preset.transform);
                     this.#updateOverlay();
                 }, 0);
             } else {
-                this.#initPropertiesFromImage();
+                // passed-in number, so simply zoom level
+                const zoom = preset;
+                this.#initPropertiesFromImage(zoom);
             }
         });
     }
@@ -258,18 +263,49 @@ export class Cropt {
             top: getPoint(top),
             right: getPoint(left + oWidth + widthDiff),
             bottom: getPoint(top + oHeight + heightDiff),
+            width: getPoint(oWidth + widthDiff),
+            height: getPoint(oHeight + heightDiff),
         };
     }
 
     /**
      * Returns:
-     * crop { left, top, right, bottom }: the crop rectangle for image cropping outside Cropt
+     * crop { x, y, width, height }: the crop rectangle for image cropping outside Cropt
      * transform: adjustments to re-create placement of image in viewport (ex. continue editing)
      * viewport: the active viewport size + borderRadius used (in case it's system adjusted)
      */
     get() {
+        const p = this.#getPoints();
+        let crop = {
+            x: p.left,
+            y: p.top,
+            width: p.width,
+            height: p.height,
+        };
+
+        // adjust (x,y) depending on rotation to match orientation AFTER rotation
+        const origW = this.elements.preview.naturalWidth;
+        const origH = this.elements.preview.naturalHeight;
+        if (this.#rotation === 90 || this.#rotation === 270) {
+            // 90 degrees so switch W x H -> H x W, then adjust coords
+            crop.width = p.height;
+            crop.height = p.width;
+            if (this.#rotation === 90) {
+                crop.x = p.top;
+                crop.y = origW - p.left - p.width;
+            } else {
+                crop.x = origH - p.top - p.height;
+                crop.y = p.left;
+            }
+        } else if( this.#rotation === 180 ) {
+            crop.x = origW - p.left - p.width;
+            crop.y = origH - p.top - p.height;
+        }
+        crop.x = Math.max(0,crop.x); // sometimes calcs -1 or -3, clamp it to 0.
+        crop.y = Math.max(0,crop.y);
+
         return {
-            crop: this.#getPoints(),
+            crop,
             transform: this.#transformPreview(),
             viewport: {
                 width: Math.round(this.options.viewport.width),
@@ -281,28 +317,32 @@ export class Cropt {
 
     /**
      * Returns a Promise resolving to an HTMLCanvasElement object for the cropped image.
-     * If size is specified, the image will be scaled with its longest side set to size.
-     * Otherwise (size = null), full-size cropped area is returned
+     * If size is POSTIVE: the image will be SCALED with its longest side set to size.
+     * If size is NEGATIVE: it will only SHRINK it if it exceeds size (never enlarge it)
+     * Otherwise (size = null), actual-size cropped area is returned
      */
     toCanvas(size: number | null = null, type: string = '') {
-        const vpRect = this.elements.viewport.getBoundingClientRect();
-        const ratio = vpRect.width / vpRect.height;
         const points = this.#getPoints();
-        let width = points.right - points.left;
-        let height = points.bottom - points.top;
+        const shrinkOnly = size && size < 0;
+        if( size && shrinkOnly ) size = -size; // make positive
+        let finalWidth = points.width;
+        let finalHeight = points.height;
 
-        // resize only if size passed in
-        if (size !== null) {
+        // resize only if size passed in (if negative only shrink if sides exceed final)
+        if (size && (!shrinkOnly || finalWidth > size || finalHeight > size)) {        
+            const vpRect = this.elements.viewport.getBoundingClientRect();
+            const ratio = vpRect.width / vpRect.height;
+
             if (ratio > 1) {
-                width = size;
-                height = size / ratio;
+                finalWidth = size;
+                finalHeight = size / ratio;
             } else {
-                height = size;
-                width = size * ratio;
+                finalHeight = size;
+                finalWidth = size * ratio;
             }
         }
 
-        return Promise.resolve(this.#getCanvas(points, width, height, type));
+        return Promise.resolve(this.#getCanvas(points, finalWidth, finalHeight, type));
     }
 
     toBlob(size: number | null = null, type = "image/webp", quality = 1): Promise<Blob> {
@@ -317,6 +357,9 @@ export class Cropt {
                         if (blob === null) {
                             reject("Canvas blob is null");
                         } else {
+                            // add in this meta-data to blob
+                            blob.width = canvas.width;
+                            blob.height = canvas.height;
                             resolve(blob);
                         }
                     },
@@ -334,27 +377,27 @@ export class Cropt {
     setOptions(options: RecursivePartial<CroptOptions>) {
         const curWidth = this.options.viewport.width;
         const curHeight = this.options.viewport.height;
+        const viewport = this.options.viewport;
 
         if (options.viewport) {
-            options.viewport = { ...this.options.viewport, ...options.viewport };
+            options.viewport = { ...viewport, ...options.viewport };
         }
 
-        // changed: removed structuredClone: slow, and would fail passing functions in options
         this.options = { ...this.options, ...options } as CroptOptions;
         this.#setViewportCss();
 
-        if (
-            this.options.viewport.width !== curWidth ||
-            this.options.viewport.height !== curHeight
-        ) {
-            this.#updateZoomLimits();
-        }
+        // if viewport dimensions unchanged, don't change zoom
+        if (viewport.width === curWidth && viewport.height === curHeight) return;
+        
+        this.#updateZoomLimits();
     }
 
     setZoom(value: number) {
-        setZoomerVal(value, this.elements.zoomer);
-        const event = new Event("input");
-        this.elements.zoomer.dispatchEvent(event); // triggers this.#onZoom call
+        const zoomer = this.elements.zoomer;
+        const zMin = parseFloat(zoomer.min);
+        const zMax = parseFloat(zoomer.max);
+        zoomer.value = Math.max(zMin, Math.min(zMax, value)).toFixed(3);
+        this.#onZoom();
     }
 
     async setRotation(degrees: number) {
@@ -397,24 +440,23 @@ export class Cropt {
         const blob = await new Promise<Blob>((resolve, reject) => {
             canvas.toBlob(
                 (b) => (b ? resolve(b) : reject(new Error("Failed to create blob"))),
-                "image/png",
+                // "image/png",
+                "image/webp", 1
             );
         });
 
-        // Revoke old URL and set new one
-        if (img.src.startsWith("blob:")) URL.revokeObjectURL(img.src);
-
+        if (this.#clearRotationBlob) URL.revokeObjectURL(img.src);
         img.src = URL.createObjectURL(blob);
         await img.decode(); // Wait for decode without onload event
+        // set a flag so we delete this blob if changing src or destroy
+        this.#clearRotationBlob = true;
     }
 
     destroy() {
         this.#abortController.abort();
 
-        // Clean up blob URL if it exists
-        if (this.elements.preview.src.startsWith("blob:")) {
-            URL.revokeObjectURL(this.elements.preview.src);
-        }
+        // Clean up blob URL if we created it internally (ex. for rotation)
+        if (this.#clearRotationBlob) URL.revokeObjectURL(this.elements.preview.src);
 
         this.element.removeChild(this.elements.boundary);
         this.element.classList.remove("cropt-container");
@@ -423,7 +465,7 @@ export class Cropt {
     }
 
     // adjust preview tranform styles (& transformOrigin)
-    // NOTE: rotate is handled by physically rotating the image, not CSS transform
+    // NOTE: rotate is handled by physically rotating the image (saves many recalculations)
     #transformPreview(data?: {
         x?: number;
         y?: number;
@@ -482,7 +524,6 @@ export class Cropt {
     }
 
     #setViewportCss() {
-        this.elements.zoomer.className = this.options.zoomerInputClass;
         const viewport = this.elements.viewport;
         viewport.style.borderRadius = this.options.viewport.borderRadius;
         viewport.style.width = this.options.viewport.width + "px";
@@ -546,8 +587,6 @@ export class Cropt {
     }
 
     #initControlHandlers() {
-        const MIN_SIZE = 50;
-
         // Right handle - adjusts width
         let rightStartX = 0;
         let rightStartWidth = 0;
@@ -556,7 +595,7 @@ export class Cropt {
             ev.preventDefault();
             const deltaX = ev.pageX - rightStartX;
             const maxWidth = Math.floor(this.elements.boundary.clientWidth * 0.95);
-            const newWidth = Math.min(maxWidth, Math.max(MIN_SIZE, rightStartWidth + deltaX));
+            const newWidth = Math.min(maxWidth, Math.max(this.#viewportMinWidth, rightStartWidth + deltaX));
 
             this.options.viewport.width = newWidth;
             this.#setViewportCss();
@@ -595,7 +634,7 @@ export class Cropt {
             ev.preventDefault();
             const deltaY = ev.pageY - bottomStartY;
             const maxHeight = Math.floor(this.elements.boundary.clientHeight * 0.95);
-            const newHeight = Math.min(maxHeight, Math.max(MIN_SIZE, bottomStartHeight + deltaY));
+            const newHeight = Math.min(maxHeight, Math.max(this.#viewportMinHeight, bottomStartHeight + deltaY));
 
             this.options.viewport.height = newHeight;
             this.#setViewportCss();
@@ -628,8 +667,6 @@ export class Cropt {
     }
 
     #getUnscaledCanvas(p: CropPoints) {
-        const sWidth = p.right - p.left;
-        const sHeight = p.bottom - p.top;
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
 
@@ -637,15 +674,15 @@ export class Cropt {
             throw new Error("Canvas context cannot be null");
         }
 
-        canvas.width = sWidth;
-        canvas.height = sHeight;
+        canvas.width = p.width;
+        canvas.height = p.height;
         const el = this.elements.preview;
-        ctx.drawImage(el, p.left, p.top, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(el, p.left, p.top, p.width, p.height, 0, 0, canvas.width, canvas.height);
 
         return canvas;
     }
     
-    #getCanvas(points: CropPoints, width: number, height: number, type: string) {
+    #getCanvas(points: CropPoints, finalWidth: number, finalHeight: number, type: string) {
         // cannot draw from a canvas into itself while resizing — it causes visual corruption
         // ping-pong oc -> buffer -> oc ....
         console.time('getCanvas')
@@ -655,8 +692,8 @@ export class Cropt {
         const bctx = buffer.getContext("2d");
         const canvas = document.createElement("canvas");
         const ctx = canvas.getContext("2d");
-        canvas.width = width;
-        canvas.height = height;
+        canvas.width = finalWidth;
+        canvas.height = finalHeight;
 
         if (ctx === null || octx === null || bctx === null) {
             throw new Error("Canvas context cannot be null");
@@ -668,24 +705,22 @@ export class Cropt {
         };
 
         while (to.width > canvas.width * 2) {
-            // step down size by one half for smooth scaling
             let w = to.width;
             let h = to.height;
 
-            to = {
-                width: Math.floor(to.width / 2),
-                height: Math.floor(to.height / 2),
-            };
-
-            // write oc to buffer
+            // buffer: copy oc (oc -> buffer)
             buffer.width = w;
             buffer.height = h;
             bctx.clearRect(0, 0, buffer.width, buffer.height);
             bctx.drawImage(oc, 0, 0);
 
-            // clear oc
+            to = {
+                width: Math.floor(w / 2),
+                height: Math.floor(h / 2),
+            };
+            // clear oc 
             octx.clearRect(0, 0, w, h);
-
+            // oc: copy 1/2-size buffer (buffer -> oc/2) -- half-size for smooth scaling
             octx.drawImage(buffer, 0, 0, w, h, 0, 0, to.width, to.height);
         }
 
@@ -831,39 +866,37 @@ export class Cropt {
             signal: this.#abortController.signal,
         });
 
-        if (this.options.enableKeypress) {
-            let keyDown = (ev: KeyboardEvent) => {
-                // for user-input fields we skip
-                if (
-                    document.activeElement &&
-                    ["INPUT", "TEXTAREA", "SELECT", "BUTTON"].includes(
-                        document.activeElement.nodeName,
-                    )
-                ) {
-                    return;
-                }
+        if (!this.options.enableKeypress) return;
 
-                if (ev.shiftKey && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) {
-                    ev.preventDefault();
-                    let zoomVal = parseFloat(this.elements.zoomer.value);
-                    let stepVal = ev.key === "ArrowUp" ? 0.01 : -0.01;
-                    this.setZoom(zoomVal + stepVal);
-                } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.key)) {
-                    ev.preventDefault();
-                    let [deltaX, deltaY] = getArrowKeyDeltas(ev.key);
-                    this.#assignTransformCoordinates(deltaX, deltaY);
-                }
-            };
+        const keyDown = (ev: KeyboardEvent) => {
+            // for user-input fields we skip
+            if ( document.activeElement &&
+                ["INPUT", "TEXTAREA", "SELECT", "BUTTON"]
+                .includes(document.activeElement.nodeName)) return;
 
-            document.addEventListener("keydown", keyDown, { signal: this.#abortController.signal });
-        }
+            const deltaXY = getArrowKeyDeltas(ev.key);
+            if (deltaXY === null) return; // only care about arrow keys
+
+            if (ev.shiftKey && deltaXY[1]) {
+                ev.preventDefault();
+                const zoomVal = parseFloat(this.elements.zoomer.value);
+                this.setZoom(zoomVal + deltaXY[1]*0.005); // +/-2 *.005 = +/-0.01
+            } else {
+                ev.preventDefault();
+                this.#assignTransformCoordinates(deltaXY[0], deltaXY[1]);
+            }
+        };
+
+        document.addEventListener("keydown", keyDown, { signal: this.#abortController.signal });
     }
 
     #initializeZoom() {
-        this.elements.zoomer.addEventListener("input", ()=>this.#onZoom(), {
-            signal: this.#abortController.signal,
-        });
-
+        if (this.options.enableZoomSlider) {
+            this.elements.zoomer.addEventListener("input", ()=>this.#onZoom(), {
+                signal: this.#abortController.signal,
+            });
+        }
+        
         if (this.options.mouseWheelZoom === "off") return;
 
         const scroll = (ev: WheelEvent) => {
@@ -889,7 +922,6 @@ export class Cropt {
         const transform = this.#transformPreview();
         this.#scale = parseFloat(this.elements.zoomer.value);
         transform.scale = this.#scale;
-        // this.#transformPreview(transform)
 
         const boundaries = this.#getVirtualBoundaries();
         const transBoundaries = boundaries.translate;
@@ -971,15 +1003,13 @@ export class Cropt {
         overlay.style.left = `${imgData.left - boundRect.left}px`;
     }
 
-    #initPropertiesFromImage() {
-        if (!this.#isVisible()) {
-            return;
-        }
+    #initPropertiesFromImage(zoom: number | null = null) {
+        if (!this.#isVisible()) return;
 
         // resets values to calculate zoom limits
         const transformReset = { x: 0, y: 0, scale: 1, origin: { x: 0, y: 0 } };
         this.#transformPreview(transformReset);
-        this.#updateZoomLimits();
+        this.#updateZoomLimits(zoom);
 
         transformReset.scale = this.#scale;
         this.#transformPreview(transformReset);
@@ -1010,7 +1040,7 @@ export class Cropt {
         this.#transformPreview({ ...transform, origin: center });
     }
 
-    #updateZoomLimits(skipCenter = false) {
+    #updateZoomLimits(zoom: number | null = null) {
         const img = this.elements.preview;
         const vpData = this.elements.viewport.getBoundingClientRect();
         const minZoom = Math.max(
@@ -1018,18 +1048,15 @@ export class Cropt {
             vpData.height / img.naturalHeight,
         );
 
-        let maxZoom = 0.85;
+        let maxZoom = this.#maxZoom;
         if (minZoom >= maxZoom) {
             maxZoom += minZoom;
         }
 
         this.elements.zoomer.min = minZoom.toFixed(3);
         this.elements.zoomer.max = maxZoom.toFixed(3);
-        if (skipCenter) return;
 
-        let zoom = this.#boundZoom;
-
-        if (zoom === undefined) {
+        if (zoom === null) {
             const bData = this.elements.boundary.getBoundingClientRect();
             zoom = Math.max(bData.width / img.naturalWidth, bData.height / img.naturalHeight);
         }

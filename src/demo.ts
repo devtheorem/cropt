@@ -11,7 +11,7 @@ function popupResult(src: string, borderRadius: string) {
     if (bodyEl === null) {
         throw new Error("bodyEl is null");
     }
-
+        
     bodyEl.innerHTML = `<img src="${src}" style="${imgStyle}" />`;
     resultModal.show();
 }
@@ -25,6 +25,7 @@ let photos = [
     "woman-dog.jpg",
 ];
 
+// Get Result output size
 const outputSize = 500;
 
 interface DemoConfig {
@@ -104,8 +105,7 @@ const demoConfigs: Record<string, DemoConfig> = {
         hideControls: true,
         notes:
             "Note the <b>grab bars</b> on the viewport, you can manually adjust the sizing of viewport." +
-            "<br><br>Note for <b>rotation</b>, if you are using the crop coordinates, <i>you must rotate " +
-            "the image FIRST</i>, then the crop coordinates apply.",
+            "<br><br>If picture is rotated, crop coordinates correspond to rotated canvas.",
         getRandomImage: () => "photos/" + photos[Math.floor(Math.random() * photos.length)],
     },
 };
@@ -134,7 +134,7 @@ const cropt = new Cropt(cropEl, ${optionStr});
 ${bindPreset}
 cropt.bind("${imgSrc}"${bindPreset ? ", preset" : ""});
 
-resultBtn.addEventListener("click", () => {${
+resultBtn.addEventListener("click", async () => {${
         bindPreset
             ? `
     // Read the crop & viewport details this way...
@@ -143,10 +143,10 @@ resultBtn.addEventListener("click", () => {${
     console.log( JSON.stringify(cropAndViewportInfo) );\n`
             : ""
     }
-    cropt.toCanvas(${outputSize}).then((canvas) => {
-        let url = canvas.toDataURL();
-        // Display in modal dialog.
-    });
+    const canvas = await cropt.toCanvas(${outputSize})
+    let url = canvas.toDataURL(); // or canvas.toBlob();
+    // Now can display in image: img.src = url
+    // Display in modal dialog.
 });`;
 }
 
@@ -275,14 +275,17 @@ function demoMain() {
 
     // Setup result button
     const resultBtn = getElById("result-btn");
-    resultBtn.onclick = () => {
+    resultBtn.onclick = async () => {
         if (!cropt) return;
         const cropAndViewportInfo = cropt.get();
         console.log(`Image parameters [cropt.get()]:`, JSON.stringify(cropAndViewportInfo));
 
-        cropt.toCanvas(outputSize).then((canvas: HTMLCanvasElement) => {
-            if (cropt) popupResult(canvas.toDataURL(), cropt.options.viewport.borderRadius);
-        });
+        // const canvas = await cropt.toCanvas(outputSize)
+        // if (cropt && canvas) popupResult(canvas.toDataURL(), cropt.options.viewport.borderRadius);
+        // or using blobs better if big images
+        const cropBlob = await cropt.toBlob(outputSize);
+        console.log(`- returned Blob:`, cropBlob);
+        if( cropt && cropBlob ) popupResult(URL.createObjectURL(cropBlob), cropt.options.viewport.borderRadius);
     };
 
     // Setup tab switching

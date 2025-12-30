@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "outDir": "dist",
         "module": "ES2022",
         "target": "ES2022",
         "noUnusedLocals": true,

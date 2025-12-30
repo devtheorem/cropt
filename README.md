@@ -5,7 +5,7 @@ Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but
 ## Installation
 
 ```
-npm install cropt
+npm install cropt2
 ```
 
 ## Running Demo
@@ -17,7 +17,7 @@ npm start
 
 ## Usage
 
-1. Include the `src/cropt.css` stylesheet on your page.
+1. Include the `cropt.min.css` stylesheet on your page.
 2. Add a `div` element to your HTML to hold the Cropt instance.
 3. Import Cropt and bind it to an image:
 
