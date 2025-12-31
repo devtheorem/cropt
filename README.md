@@ -34,7 +34,7 @@ npm start
 3. Import Cropt and bind it to an image:
 
 ```javascript
-import { Cropt } from "cropt";
+import Cropt from "cropt2";
 
 let c = new Cropt(document.getElementById('demo'), options);
 c.bind("path/to/image.jpg");
@@ -163,3 +163,4 @@ Cropt should also work in any other modern browser using an engine based on Geck
 ## License
 
 MIT
+
