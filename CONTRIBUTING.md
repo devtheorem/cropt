@@ -8,7 +8,7 @@ We thank our contributors for helping make Cropt even better:
     Originally based on Croppie, but rewritten as a modern ES6
 
 [Filipe Laborde](https://github.com/mindflowgo/)
-    - Croppie-like resize handle grabbers, rotation, get() + preset restoring... all in under 300 lines
+    - Croppie-like resize handle grabbers, rotation, get() + preset restoring, and improved packaging.
 
 ## Quickstart
 First, this is a community project, so the developers and contributors appreciate properly prepared contributions and help by others. Please review the code before making changes to keep with the format of the existing code.

@@ -4,4 +4,3 @@ demo/build/
 src/*.js
 src/*.d.ts
 dist/
-package-lock.json
