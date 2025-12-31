@@ -1,6 +1,13 @@
-# Cropt - lightweight JavaScript image cropper
+# Cropt v2 - lightweight JavaScript image cropper
+[Github](https://github.com/mindflowgo/cropt/)
 
-Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but rewritten as a modern ES module with a simpler API, higher quality image scaling, and numerous other improvements. 
+Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but rewritten as a modern ES module with a simpler API, higher quality image scaling, and numerous other improvements by 
+[Devtheorem](https://devtheorem.github.io/cropt/).
+
+It was extensively enhanced (but backwards compatible with v1) to include adjustable viewport, rotation, 
+keyboard handling, and various optimizations and bug fixes. And packed to work as browser install, commonJS, 
+esm package, etc.
+
 
 ## Installation
 
@@ -11,7 +18,7 @@ npm install cropt2
 ## Running Demo
 
 ```
-npm run prepare
+npm run build
 npm start
 ```
 
@@ -130,17 +137,7 @@ Set a rotation factor (0, 90, 180, 270) to the image.
 
 ## Visibility and binding
 
-Cropt is dependent on its container being visible when the bind method is called. This can be an issue when your component is inside a modal that isn't shown. Consider the Bootstrap modal, for example:
-
-```javascript
-const cropEl = document.getElementById('my-cropt');
-const c = new Cropt(cropEl, opts);
-const myModal = document.getElementById('my-modal');
-
-myModal.addEventListener('shown.bs.modal', () => {
-    c.bind("my/image.jpg");
-});
-```
+Cropt is dependent on its container being **visible** when the bind method is called. This can be an issue when your component is inside a modal or block that isn't shown (ex. style = display:none).
 
 If you have issues getting the correct result, and your Cropt instance is shown inside a modal, try taking it out of the modal and see if the issue persists. If not, make sure that your bind method is called after the modal finishes opening.
 
@@ -154,11 +151,10 @@ Cropt is tested in the following browsers:
 * Safari
 * Chrome
 * Edge
+* Mobile Safari
 
 Cropt should also work in any other modern browser using an engine based on Gecko, WebKit, or Chromium.
 
 ## License
 
 MIT
-
-

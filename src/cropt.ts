@@ -16,7 +16,8 @@ function debounce<T extends Function>(func: T, wait: number) {
 function loadImage(src: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const img = new Image();
-
+        img.crossOrigin = "anonymous"; // important to avoid CORS when using external pictures
+        
         img.onload = () => {
             resolve(img);
         };
@@ -87,7 +88,7 @@ interface CropPoints {
     height: number;
 }
 
-export class Cropt {
+class Cropt {
     element: HTMLElement;
     elements: {
         boundary: HTMLDivElement;
@@ -1077,3 +1078,5 @@ export class Cropt {
         this.#updateCenterPoint({ x, y, scale: this.#scale });
     }
 }
+
+export default Cropt;

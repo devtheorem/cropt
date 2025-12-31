@@ -1,9 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Cropt - lightweight image cropper</title>
+        <title>Cropt v2 - lightweight image cropper</title>
+        <meta name="description" content="Power canvas image cropper: pure javascript, fast, optimized image resizing." />
 
         <meta property="og:title" content="Cropt - lightweight JavaScript image cropper" />
         <meta property="og:type" content="website" />
@@ -11,9 +12,7 @@
         <meta property="og:image" content="https://mindflowgo.github.io/cropt/hero.png" />
 
         <link rel="icon" href="cropt.png" />
-        <link rel="stylesheet" href="build/cropt.min.css" />
-        <link rel="stylesheet" href="build/bs-custom.css" />
-        <script src="build/bootstrap.bundle.min.js"></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
         <link
             rel="stylesheet"
@@ -28,7 +27,20 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
+        <link rel="stylesheet" href="https://unpkg.com/cropt2@latest/dist/cropt.min.css" />
+
         <style>
+            /* For bootstrap changing color/dark mode */
+            :root {
+                color-scheme: dark;
+                --bs-primary: #c56aa1;                
+                --bs-body-color: #dee2e6;
+                --bs-primary-text-emphasis: #c180a7;
+                --bs-primary-bg-subtle: #1e0916;
+                --bs-primary-border-subtle: #5b1a41;
+            }
+
+            
             .bi {
                 margin-top: -4px;
                 margin-right: 2px;
@@ -87,6 +99,12 @@
                                 View Readme
                             </a>
                         </p>
+                                <small><br />Try demo tabs below, or Codepens:
+                                    <ul>
+                                        <li><a href="https://codepen.io/mindflowgo/pen/QwEbegE" target="_blank">CodePen Demo #1</a></li>
+                                    </ul>
+                                </small>
+
                     </div>
                     <div class="col-12 col-md-5">
                         <div class="tab-content" id="demo-tabs-content">
@@ -156,12 +174,12 @@
         </div>
 
         <div class="container-md">
-            <div class="row my-3 align-items-center">
+            <div class="row mt-3 align-items-center">
                 <div class="col-7">
                     <h2>Code</h2>
                 </div>
                 <div class="col-5 text-end">
-                    <button id="result-btn" class="btn btn-primary">
+                    <button onclick="openModal()" id="result-btn" class="btn btn-primary">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="16"
@@ -180,11 +198,15 @@
             </div>
             <div class="row">
                 <div class="col-12 col-md-7">
-                    <pre
-                        class="border border-5 border-primary border-top-0 border-end-0 border-bottom-0"
-                    >
-                        <code class="language-javascript hljs" id="code-el"></code>
-                    </pre>
+<pre id="html-el" class="text-muted bg-secondary bg-opacity-10 border border-5 border-top-0 border-end-0 border-bottom-0" style='overflow:hidden;'>
+  &lt;head&gt;
+    &lt;link rel="stylesheet" href="https://unpkg.com/cropt2@latest/dist/cropt.min.js" /&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id="crop-demo"&gt;&lt;/div&gt;
+  &lt;/body&gt;</pre>
+            <pre class="border border-5 border-primary border-top-0 border-end-0 border-bottom-0"
+                ><code class="language-javascript hljs" id="code-el"></code></pre>
                 </div>
                 <div class="col-12 col-md-5">
                     <div id="notes"></div>
@@ -252,6 +274,7 @@
                     <div class="modal-header">
                         <h1 class="modal-title fs-5" id="resultModalLabel">Result</h1>
                         <button
+                            id="resultModalClose"
                             type="button"
                             class="btn-close"
                             data-bs-dismiss="modal"
@@ -263,6 +286,6 @@
             </div>
         </div>
 
-        <script type="module" src="build/demo.min.js"></script>
+        <script type="module" src="./demo.js"></script>
     </body>
 </html>
