@@ -73,7 +73,7 @@ const demoConfigs = {
         preset: null,
         hideControls: false,
         notes: "",
-        getRandomImage: () => "photos/" + photos[Math.floor(Math.random() * photos.length)],
+        getRandomImage: () => "assets/photos/" + photos[Math.floor(Math.random() * photos.length)],
     },
     demo2: {
         id: "crop-demo-2",
@@ -98,7 +98,7 @@ const demoConfigs = {
         hideControls: true,
         notes: "Passing a previously captured:<br>&nbsp; &nbsp; <code class='language-javascript hljs'>cropt.get()</code> <br>restores viewport " +
             "and image position. See the <br>&nbsp; &nbsp; <code class='language-javascript hljs'>cropt.bind()</code> <br> section. Look in the console.log for output from <b>cropt.get()</b>.",
-        getRandomImage: () => "photos/kitten.jpg",
+        getRandomImage: () => "assets/photos/kitten.jpg",
     },
     demo3: {
         id: "crop-demo-3",
@@ -111,7 +111,7 @@ const demoConfigs = {
         hideControls: true,
         notes: "Note the <b>grab bars</b> on the viewport, you can manually adjust the sizing of viewport." +
             "<br><br>If picture is rotated, crop coordinates correspond to rotated canvas.",
-        getRandomImage: () => "photos/" + photos[Math.floor(Math.random() * photos.length)],
+        getRandomImage: () => "assets/photos/" + photos[Math.floor(Math.random() * photos.length)],
     },
 };
 

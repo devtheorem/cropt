@@ -9,6 +9,11 @@ keyboard handling, and various optimizations and bug fixes. And packed to work a
 esm package, etc.
 
 
+## Quick Start
+
+- Look at the /docs directory for examples.
+- Try our [codepen](https://codepen.io/mindflowgo/pen/QwEbegE).
+
 ## Installation
 
 ```
