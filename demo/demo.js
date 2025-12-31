@@ -139,17 +139,19 @@ const cropt = new Cropt(cropEl, ${optionStr});
 ${bindPreset}
 cropt.bind("${imgSrc}"${bindPreset ? ", preset" : ""});
 
-resultBtn.addEventListener("click", async () => {${bindPreset
+resultBtn.addEventListener("click", () => {${bindPreset
         ? `
     // Read the crop & viewport details this way...
     const cropAndViewportInfo = cropt.get();
     console.log(\`Image parameters [cropt.get()]:\`)
     console.log( JSON.stringify(cropAndViewportInfo) );\n`
         : ""}
-    const canvas = await cropt.toCanvas(${outputSize})
-    let url = canvas.toDataURL(); // or canvas.toBlob();
-    // Now can display in image: img.src = url
-    // Display in modal dialog.
+    cropt.toCanvas(${outputSize}).then( canvas => {
+        let url = canvas.toDataURL(); // or canvas.toBlob();
+        // Now can display in image: img.src = url
+        // Display in modal dialog.
+    })
+    
 });`;
 }
 
