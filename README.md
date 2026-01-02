@@ -5,8 +5,7 @@ Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but
 [Devtheorem](https://devtheorem.github.io/cropt/).
 
 It was extensively enhanced (but backwards compatible with v1) to include adjustable viewport, rotation, 
-keyboard handling, and various optimizations and bug fixes. And packed to work as browser install, commonJS, 
-esm package, etc.
+keyboard handling, and various optimizations and bug fixes. And packed to work as browser install, commonJS, esm package, etc.
 
 
 ## Quick Start
@@ -36,8 +35,8 @@ npm start
 ```javascript
 import Cropt from "cropt2";
 
-let c = new Cropt(document.getElementById('demo'), options);
-c.bind("path/to/image.jpg");
+const cropt = new Cropt(document.getElementById('demo'), options);
+cropt.bind("path/to/image.jpg");
 ```
 
 ### Sizing
