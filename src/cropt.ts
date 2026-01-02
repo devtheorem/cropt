@@ -189,6 +189,12 @@ class Cropt {
 
         this.element.appendChild(this.elements.boundary);
         this.element.appendChild(this.elements.toolBar);
+        if (this.elements.toolBar.childNodes.length ) {
+            // there's something in toolbar, so show it, and adjust height of picture-box
+            this.element.style.setProperty('--cropt-toolbar', '32px');
+        } else {
+            this.element.style.setProperty('--cropt-toolbar', '0px');
+        }
 
         this.#setViewportCss();
         this.#initDraggable();

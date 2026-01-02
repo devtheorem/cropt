@@ -28,7 +28,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
         <!-- This is the only CSS needed by cropt -->
-        <!-- <link rel="stylesheet" href="../dist/cropt.min.css" /> -->
+        <!-- <link rel="stylesheet" href="../src/cropt.css" /> -->
         <link rel="stylesheet" href="https://unpkg.com/cropt2@latest/style" />
 
         <style>
@@ -42,10 +42,6 @@
                 --bs-primary-border-subtle: #5b1a41;
             }
 
-            .demo-container {
-                width: 320px;
-            }
-
             .bi {
                 margin-top: -4px;
                 margin-right: 2px;
@@ -53,21 +49,14 @@
 
             .logo {
                 width: 70px;
+                display: inline-block;
             }
 
-            .dark-only {
-                display: none;
-            }
-
-            @media (prefers-color-scheme: dark) {
-                .light-only {
-                    display: none;
-                }
-
-                .dark-only {
-                    display: inline-block;
-                }
-            }
+            /* specify countainer size, need height else crop is 0px high! */
+            .demo-container {
+                width: 320px;
+                height: 380px;
+            }            
         </style>
     </head>
     <body>
@@ -76,8 +65,7 @@
                 <div class="row">
                     <div class="col-12 col-md-7">
                         <h1 class="display-2 mt-2">
-                            <img class="logo dark-only" src="assets/cropt.svg" />
-                            <img class="logo light-only" src="assets/cropt-color.svg" />
+                            <img class="logo" src="assets/cropt.svg" />
                             Cropt <font size="4">v2.0.11</font>
                         </h1>
                         <p class="lead mt-3">

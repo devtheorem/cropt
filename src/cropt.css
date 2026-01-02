@@ -20,12 +20,12 @@
     overflow: hidden;
     margin: 0 auto;
     z-index: 1;
-    height: 320px;
+    width: 100%;
+    height: calc(100% - var(--cropt-toolbar, 0px));
 }
 
-.cropt-container .cr-boundary,
 .cropt-container .cr-toolbar-wrap {
-    width: 320px;
+    height: calc(var(--cropt-toolbar, 4px) - 8px);
 }
 
 .cropt-container .cr-viewport {

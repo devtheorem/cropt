@@ -3,6 +3,8 @@
 
 // access via CDN like this (for modules note 'esm')
 import Cropt from 'https://unpkg.com/cropt2@latest?module';
+// or if rebuilding it from source (npm run build)
+// import Cropt from '../../dist/cropt.js'
 
 /* bootstrap tabs + modal -------------------------------------- */
 document.addEventListener('click', e => {
@@ -83,11 +85,11 @@ const demoConfigs = {
         },
         preset: {
             transform: {
-                x: -857,
-                y: -752,
+                x: -916,
+                y: -715,
                 scale: 0.685,
                 rotate: 0,
-                origin: { x: 1017.26, y: 911 },
+                origin: { x: 1076, y: 907 },
             },
             viewport: {
                 width: 252,
