@@ -133,7 +133,7 @@ class Cropt {
 
     constructor(element: HTMLElement, options: RecursivePartial<CroptOptions>) {
         if (element.classList.contains("cropt-container")) {
-            throw new Error("Cropt is already initialized on this element");
+            throw new Error("Cropt appears initialized (element has 'cropt-container' class). Aborting.");
         }
 
         if (options.viewport) {
@@ -223,16 +223,17 @@ class Cropt {
         return loadImage(src).then(async (img) => {
             this.#replaceImage(img); // force-replace image node (prevents caching, etc)
 
-            if (typeof preset === "object") {
-                this.setOptions({ viewport: preset.viewport });
+            if (typeof preset === "object" && preset?.transform) {
+                if (preset?.viewport)
+                    this.setOptions({ viewport: preset.viewport });
 
                 // defer restore to next frame (after layout)
                 setTimeout(async () => {
                     // Apply rotation first (physically rotates the image)
-                    if (preset.transform.rotate) {
+                    if (preset.transform?.rotate) {
                         await this.setRotation(preset.transform.rotate);
                     }
-                    const zoom = preset.transform.scale;
+                    const zoom = preset.transform?.scale || null;
                     this.#updateZoomLimits(zoom);
 
                     // Finally, override to custom preview positioning
@@ -241,7 +242,7 @@ class Cropt {
                 }, 0);
             } else {
                 // passed-in number, so simply zoom level
-                const zoom = preset;
+                const zoom = Number(preset) || null;
                 this.#initPropertiesFromImage(zoom);
             }
         });
@@ -526,9 +527,9 @@ class Cropt {
 
     #setViewportCss() {
         const viewport = this.elements.viewport;
-        viewport.style.borderRadius = this.options.viewport.borderRadius;
-        viewport.style.width = this.options.viewport.width + "px";
-        viewport.style.height = this.options.viewport.height + "px";
+        viewport.style.borderRadius = this.options.viewport?.borderRadius || "50%";
+        viewport.style.width = (this.options.viewport?.width || 100) + "px";
+        viewport.style.height = (this.options.viewport?.height || 100) + "px";
 
         // whenever viewport changes - need to move controls overlayed!
         this.#updateControlHandlePositions(); 
