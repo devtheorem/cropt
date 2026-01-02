@@ -1,19 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Cropt - lightweight image cropper</title>
+        <title>Cropt v2 - lightweight image cropper</title>
+        <meta name="description" content="Power canvas image cropper: pure javascript, fast, optimized image resizing." />
 
         <meta property="og:title" content="Cropt - lightweight JavaScript image cropper" />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://devtheorem.github.io/cropt" />
-        <meta property="og:image" content="https://devtheorem.github.io/cropt/hero.png" />
+        <meta property="og:url" content="https://mindflowgo.github.io/cropt" />
+        <meta property="og:image" content="https://raw.githubusercontent.com/mindflowgo/cropt/refs/heads/master/docs/assets/hero.png" />
 
-        <link rel="icon" href="cropt.png" />
-        <link rel="stylesheet" href="build/cropt.css" />
-        <link rel="stylesheet" href="build/bs-custom.css" />
-        <script src="build/bootstrap.bundle.min.js"></script>
+        <link rel="icon" href="https://raw.githubusercontent.com/mindflowgo/cropt/refs/heads/master/docs/assets/cropt.png" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
 
         <link
             rel="stylesheet"
@@ -28,7 +27,21 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
+        <!-- This is the only CSS needed by cropt -->
+        <link rel="stylesheet" href="https://unpkg.com/cropt2@latest/dist/cropt.min.css" />
+
         <style>
+            /* For bootstrap changing color/dark mode */
+            :root {
+                color-scheme: dark;
+                --bs-primary: #c56aa1;                
+                --bs-body-color: #dee2e6;
+                --bs-primary-text-emphasis: #c180a7;
+                --bs-primary-bg-subtle: #1e0916;
+                --bs-primary-border-subtle: #5b1a41;
+            }
+
+            
             .bi {
                 margin-top: -4px;
                 margin-right: 2px;
@@ -59,16 +72,19 @@
                 <div class="row">
                     <div class="col-12 col-md-7">
                         <h1 class="display-2 mt-2">
-                            <img class="logo dark-only" src="cropt.svg" />
-                            <img class="logo light-only" src="cropt-color.svg" />
-                            Cropt
+                            <img class="logo dark-only" src="assets/cropt.svg" />
+                            <img class="logo light-only" src="assets/cropt-color.svg" />
+                            Cropt <font size="4">v2.0.4</font>
                         </h1>
                         <p class="lead mt-3">
                             Cropt is a modern, lightweight image cropper with zero dependencies.
                         </p>
-
-                        <p class="mb-4">
-                            <a href="https://github.com/devtheorem/cropt" class="btn btn-primary">
+                        <p class="lead mt-3">
+                            v2 built on the awesome work by <a href="https://devtheorem.github.io/cropt" target="_blank">DevTheorem</a>.
+                        </p>
+                        <div class="row mb-4 mx-10">
+                            <div class="col text-start">
+                            <a href="https://github.com/mindflowgo/cropt" class="btn btn-primary">
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
                                     width="16"
@@ -83,22 +99,91 @@
                                 </svg>
                                 View Readme
                             </a>
-                        </p>
+                            </div>
+                            <div class="col text-end"> 
+                            <a href="https://github.com/mindflowgo/cropt" target="_blank" rel="noopener">
+  <img src="https://img.shields.io/badge/GitHub-on%20GitHub-181717?style=for-the-badge&logo=github&logoColor=white" alt="On GitHub">
+</a>                        </div>
+</div>
+                            <p>
+                                Demos below and <a href="https://codepen.io/mindflowgo/pen/QwEbegE" target="_blank">CodePen</a>
+                            </p>
+
                     </div>
                     <div class="col-12 col-md-5">
-                        <div id="crop-demo"></div>
+                        <div class="tab-content" id="demo-tabs-content">
+                            <div class="tab-pane fade show active" id="demo1" role="tabpanel">
+                                <p class="text-muted mb-2 text-center">
+                                    Basic with external viewport adjusting:
+                                </p>
+                                <div id="crop-demo" class="demo-container"></div>
+                            </div>
+                            <div class="tab-pane fade" id="demo2" role="tabpanel">
+                                <p class="text-muted mb-2 text-center">
+                                    Cropping from restored preset:
+                                </p>
+                                <div id="crop-demo-2" class="demo-container"></div>
+                            </div>
+                            <div class="tab-pane fade" id="demo3" role="tabpanel">
+                                <p class="text-muted mb-2 text-center">
+                                    Rotation and resize handles enabled:
+                                </p>
+                                <div id="crop-demo-3" class="demo-container"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
+        <div class="container-md mt-3">
+            <ul class="nav nav-tabs" id="demo-tabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button
+                        class="nav-link active"
+                        id="demo1-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#demo1"
+                        type="button"
+                        role="tab"
+                    >
+                        Demo 1
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button
+                        class="nav-link"
+                        id="demo2-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#demo2"
+                        type="button"
+                        role="tab"
+                    >
+                        Demo 2
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button
+                        class="nav-link"
+                        id="demo3-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#demo3"
+                        type="button"
+                        role="tab"
+                    >
+                        Demo 3 (Resizable)
+                    </button>
+                </li>
+            </ul>
+        </div>
+
         <div class="container-md">
-            <div class="row my-3 align-items-center">
+            <div class="row mt-3 align-items-center">
                 <div class="col-7">
-                    <h2>Demo</h2>
+                    <h2>Code</h2>
                 </div>
                 <div class="col-5 text-end">
-                    <button id="result-btn" class="btn btn-primary">
+                    <button onclick="openModal()" id="result-btn" class="btn btn-primary">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             width="16"
@@ -117,16 +202,23 @@
             </div>
             <div class="row">
                 <div class="col-12 col-md-7">
-                    <pre
-                        class="border border-5 border-primary border-top-0 border-end-0 border-bottom-0"
-                    ><code class="language-javascript hljs" id="code-el"></code></pre>
+<pre id="html-el" class="text-muted bg-secondary bg-opacity-10 border border-5 border-top-0 border-end-0 border-bottom-0" style='overflow:hidden;'>
+  &lt;head&gt;
+    &lt;link rel="stylesheet" href="https://unpkg.com/cropt2@latest/dist/cropt.min.css" /&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id="crop-demo"&gt;&lt;/div&gt;
+  &lt;/body&gt;</pre>
+            <pre class="border border-5 border-primary border-top-0 border-end-0 border-bottom-0"
+                ><code class="language-javascript hljs" id="code-el"></code></pre>
                 </div>
                 <div class="col-12 col-md-5">
-                    <form>
+                    <div id="notes"></div>
+                    <form id="controls">
                         <div class="mb-2">
-                            <label for="borderRadiusRange" class="form-label">
-                                Viewport border-radius
-                            </label>
+                            <label for="borderRadiusRange" class="form-label"
+                                >Viewport border-radius</label
+                            >
                             <input
                                 id="borderRadiusRange"
                                 type="range"
@@ -186,6 +278,7 @@
                     <div class="modal-header">
                         <h1 class="modal-title fs-5" id="resultModalLabel">Result</h1>
                         <button
+                            id="resultModalClose"
                             type="button"
                             class="btn-close"
                             data-bs-dismiss="modal"
@@ -197,6 +290,6 @@
             </div>
         </div>
 
-        <script type="module" src="build/demo.js"></script>
+        <script type="module" src="assets/demo.js"></script>
     </body>
 </html>

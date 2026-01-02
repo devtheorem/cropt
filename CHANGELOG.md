@@ -1,4 +1,12 @@
 # Changelog
+## [2.0.4] - 2025-12-31
+- Extended package options for use in browser, commonjs, etc.
+
+## [2.0.0] - 2025-12-23
+- Extended feature set: resizeBars, rotation.
+- Fixed features (keyboard image movement)
+- Added get() method to get viewport/crop info
+- Added preset parameter for bind() to pass in viewport/transform options to restore crop arrangement
 
 ## [1.0.0] - 2024-12-01
 ### Changed

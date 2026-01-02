@@ -1,0 +1,55 @@
+<html>
+<head>
+    <!-- (1) include the css + javascript file -->
+    <link rel="stylesheet" href="https://unpkg.com/cropt2@latest/dist/cropt.min.css" />
+    <!-- <script src="../dist/cropt.min.js"></script> -->
+    <script src="https://unpkg.com/cropt2@latest/dist/cropt.min.js"></script>
+</head>
+<body>
+    <h1>Basic Demo</h1>
+    <p>This demo attempts to show the bare minimum needed... basically just the npm packages in header
+        and some javascript to wire-up the image.
+    </p>
+<table>
+<tr><td>
+        <!-- (2) setup a container DIV where the cropping will happen -->
+        <div id="crop"></div>
+    </td>
+    <td>
+        <button onclick="getCrop()">Show Crop &gt;</button>
+    </td>
+    <td>
+        <img id='crop-image' />
+    </td>
+</tr>
+</table>
+
+
+
+<script>
+    // (3) make an instance of Cropt() linked to container
+    const container = document.getElementById('crop');
+
+    // connect cropt to the container element, select options to activate (see README)
+    const cropt = new Cropt(container, {
+        viewport: { width: 220, height: 220, borderRadius: "50%" },
+        resizeBars: true,
+        enableRotateBtns: true
+        });
+
+    // (4) bind a picture to Cropt
+    cropt.bind("https://raw.githubusercontent.com/mindflowgo/cropt/refs/heads/master/docs/assets/photos/kitten.jpg");
+
+    // after zooming, moving, cropping, get the resulting image:
+    function getCrop(){
+        cropt.toCanvas(500).then( canvas => {
+            // (5) grab the image data after cropping
+            document.getElementById('crop-image').src = canvas.toDataURL()
+            // copy the image viewport proportions & border curve
+            document.getElementById('crop-image').style.width = cropt.options.viewport.width;
+            document.getElementById('crop-image').style.borderRadius = cropt.options.viewport.borderRadius;
+        });
+    }
+</script>
+</body>
+</html>

@@ -1,24 +1,42 @@
-# Cropt - lightweight JavaScript image cropper
+# Cropt v2 - lightweight JavaScript image cropper
+[Github](https://github.com/mindflowgo/cropt/)
 
-Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but rewritten as a modern ES module with a simpler API, higher quality image scaling, and numerous other improvements.
+Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but rewritten as a modern ES module with a simpler API, higher quality image scaling, and numerous other improvements by 
+[Devtheorem](https://devtheorem.github.io/cropt/).
+
+It was extensively enhanced (but backwards compatible with v1) to include adjustable viewport, rotation, 
+keyboard handling, and various optimizations and bug fixes. And packed to work as browser install, commonJS, esm package, etc.
+
+
+## Quick Start
+
+- Look at the /docs directory for examples.
+- Try our [codepen](https://codepen.io/mindflowgo/pen/QwEbegE).
 
 ## Installation
 
 ```
-npm install cropt
+npm install cropt2
+```
+
+## Running Demo
+
+```
+npm run build
+npm start
 ```
 
 ## Usage
 
-1. Include the `src/cropt.css` stylesheet on your page.
+1. Include the `cropt.min.css` stylesheet on your page.
 2. Add a `div` element to your HTML to hold the Cropt instance.
 3. Import Cropt and bind it to an image:
 
 ```javascript
-import { Cropt } from "cropt";
+import Cropt from "cropt2";
 
-let c = new Cropt(document.getElementById('demo'), options);
-c.bind("path/to/image.jpg");
+const cropt = new Cropt(document.getElementById('demo'), options);
+cropt.bind("path/to/image.jpg");
 ```
 
 ### Sizing
@@ -50,11 +68,39 @@ Default value: `"cr-slider"`
 
 Optionally set a different class on the zoom range input to customize styling (e.g. set to `"form-range"` when using Bootstrap).
 
+### `enableZoomSlider`
+
+Type: `boolean`
+Default value: `true`
+
+Toggle if hiding the zoom slider.
+
+### `enableKeypress`
+
+Type: `boolean`
+Default value: `true`
+
+Toggle if allow listening for keyboard arrow keys for moving image. Will ignore if active element is a user input one (input box, text area, button).
+
+### `resizeBars`
+
+Type: `boolean`
+Default value: `false`
+
+Optionally to show resize handles (grab-bars) to adjust the viewport width/height.
+
+### `enableRotateBtns`
+
+Type: `boolean`
+Default value: `false`
+
+Toggle if showing rotation buttons beside the zoom slider bar. If both are off (enableZoomSlider and this), the toolbar is hidden.
+
 ## Methods
 
-### `bind(src: string, zoom: number | null = null): Promise<void>`
+### `bind(src: string, preset: number | { transform, viewport }): Promise<void>`
 
-Takes an image URL as the first argument, and an optional initial zoom value. Returns a `Promise` which resolves when the image has been loaded and state is initialized.
+Takes an image URL as the first argument, and an optional initial zoom value OR preset restore data for image placement in viewport. Returns a `Promise` which resolves when the image has been loaded and state is initialized.
 
 ### `destroy(): void`
 
@@ -72,6 +118,15 @@ Returns a `Promise` resolving to an `HTMLCanvasElement` object for the cropped i
 
 Returns a Promise resolving to a `Blob` object for the cropped image. If `size` is specified, the cropped image will be scaled with its longest side set to this value. The `type` and `quality` parameters are passed directly to the corresponding [HTMLCanvasElement.toBlob()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob) method parameters.
 
+### `get(): { crop: { left, top, right, bottom }, transform: { x, y, scale, rotate, origin: {x, y}}, viewport: { width, height, borderRadius } }`
+Returns information about the current crop state (all `numbers`):
+
+- crop: Crop coordinates on the original image (left, top, right, bottom in pixels). (Note: if rotation present, image must be rotated FIRST then crop coordinates will apply)
+- transform: Information for re-placement of image within viewport
+- viewport: Final viewport dimensions and styling (width, height, borderRadius)
+
+Useful for server-side cropping or saving user selections.
+
 ### `setOptions(options: CroptOptions): void`
 
 Allows options to be dynamically changed on an existing Cropt instance.
@@ -80,19 +135,13 @@ Allows options to be dynamically changed on an existing Cropt instance.
 
 Set the zoom of a Cropt instance. The value must be between 0 and 1, and is restricted to the min/max set by Cropt.
 
+### `setRotation(value: number): void`
+
+Set a rotation factor (0, 90, 180, 270) to the image.
+
 ## Visibility and binding
 
-Cropt is dependent on its container being visible when the bind method is called. This can be an issue when your component is inside a modal that isn't shown. Consider the Bootstrap modal, for example:
-
-```javascript
-const cropEl = document.getElementById('my-cropt');
-const c = new Cropt(cropEl, opts);
-const myModal = document.getElementById('my-modal');
-
-myModal.addEventListener('shown.bs.modal', () => {
-    c.bind("my/image.jpg");
-});
-```
+Cropt is dependent on its container being **visible** when the bind method is called. This can be an issue when your component is inside a modal or block that isn't shown (ex. style = display:none).
 
 If you have issues getting the correct result, and your Cropt instance is shown inside a modal, try taking it out of the modal and see if the issue persists. If not, make sure that your bind method is called after the modal finishes opening.
 
@@ -106,9 +155,11 @@ Cropt is tested in the following browsers:
 * Safari
 * Chrome
 * Edge
+* Mobile Safari
 
 Cropt should also work in any other modern browser using an engine based on Gecko, WebKit, or Chromium.
 
 ## License
 
 MIT
+

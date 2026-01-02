@@ -24,7 +24,7 @@
 }
 
 .cropt-container .cr-boundary,
-.cropt-container .cr-slider-wrap {
+.cropt-container .cr-toolbar-wrap {
     width: 320px;
 }
 
@@ -48,10 +48,60 @@
     touch-action: none;
 }
 
-.cropt-container .cr-slider-wrap {
-    margin: 15px auto;
+.cropt-container .cr-toolbar-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin: 5px auto;
 }
 
 .cropt-container .cr-slider {
+    flex: 1;
+    margin: 0 10px 0;
+}
+
+.cropt-container .cr-control {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.cropt-container .cr-resize-handle {
+    z-index: 100 !important;
+    position: absolute;
+    width: 44px !important;
+    height: 44px !important;
+    touch-action: none;
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.cropt-container .cr-resize-handle-grabber {
+    width: 10px;
+    height: 10px;
+    background: white;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+}
+
+.cropt-container .cr-resize-handle-right {
+    cursor: ew-resize;
+}
+
+.cropt-container .cr-resize-handle-bottom {
+    cursor: ns-resize;
+}
+
+.cropt-container .cr-rotate-btn {
+    border: 2px solid #667;
+    border-radius: 25%;
+    background: transparent;
+    cursor: pointer;
 }

@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "outDir": "dist",
         "module": "ES2022",
         "target": "ES2022",
         "noUnusedLocals": true,
@@ -7,5 +8,5 @@
         "declaration": true,
         "lib": ["ES2019", "DOM", "DOM.Iterable"]
     },
-    "include": ["src/*.ts"]
+    "include": ["src/cropt.ts"]
 }

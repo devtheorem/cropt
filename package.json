@@ -1,51 +1,63 @@
 {
-    "name": "cropt",
-    "version": "1.0.0",
-    "description": "A lightweight JavaScript image cropper",
-    "files": [
-        "src/cropt.*"
-    ],
-    "types": "./src/cropt.d.ts",
-    "type": "module",
-    "main": "./src/cropt.js",
-    "devDependencies": {
-        "bootstrap": "^5.3.3",
-        "gh-pages": "^6.2.0",
-        "grunt": "^1.6.1",
-        "grunt-cli": "^1.5.0",
-        "grunt-contrib-copy": "^1.0.0",
-        "grunt-contrib-sass": "^2.0.0",
-        "http-server": "^14.1.1",
-        "prettier": "^3.4.1",
-        "sass": "^1.77.6",
-        "typescript": "^5.7.2"
+  "name": "cropt2",
+  "version": "2.0.7",
+  "description": "A lightweight but powerful JavaScript image cropper",
+  "keywords": [
+    "cropping",
+    "image",
+    "canvas",
+    "image-editing",
+    "image-compression",
+    "resizing"
+  ],
+  "author": "Filipe Laborde <fil@rezox.com> + Theodore Brown <theodorejb@outlook.com>",
+  "license": "MIT",
+  "main": "dist/cropt.min.js",
+  "style": "dist/cropt.min.css",
+  "module": "dist/cropt.esm.min.js",
+  "exports": {
+    ".": {
+      "import": "./dist/cropt.esm.min.js",
+      "require": "./dist/cropt.min.js",
+      "default": "./dist/cropt.min.js"
     },
-    "scripts": {
-        "deploy": "gh-pages -d ./demo",
-        "prepare": "tsc && grunt --gruntfile Gruntfile.cjs",
-        "format": "prettier . --write",
-        "start": "http-server ./demo"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/devtheorem/cropt.git"
-    },
-    "keywords": [
-        "crop",
-        "cropper",
-        "image",
-        "cropping"
-    ],
-    "author": "Theodore Brown <theodorejb@outlook.com>",
-    "license": "MIT",
-    "bugs": {
-        "url": "https://github.com/devtheorem/cropt/issues"
-    },
-    "homepage": "http://devtheorem.github.io/cropt/",
-    "cspell": {
-        "words": [
-            "Cropt",
-            "cropt"
-        ]
-    }
+    "./style": "./dist/cropt.min.css",
+    "./dist/cropt.min.css": "./dist/cropt.min.css"
+  },
+  "types": "dist/cropt.d.ts",
+  "files": [
+    "dist/cropt.esm.min.js",
+    "dist/cropt.min.js",
+    "dist/cropt.d.ts",
+    "dist/cropt.min.css",
+    "LICENSE",
+    "README.md"
+  ],
+  "type": "module",
+  "devDependencies": {
+    "cssnano": "^7.1.2",
+    "http-server": "^14.1.1",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
+    "prettier": "^3.4.1",
+    "sass": "^1.77.6",
+    "terser": "^5.44.1",
+    "typescript": "^5.7.2"
+  },
+  "scripts": {
+    "build:js:esm": "tsc --declaration && tsc src/cropt.ts --module ESNext --target ES2017 --outDir dist/esm && terser dist/cropt.js --passes=2 --toplevel -c -m -o dist/cropt.esm.min.js",
+    "build:js:classic": "tsc src/cropt.ts --target ES2017 --outDir dist/ && terser dist/cropt.js --passes=2 --toplevel -c -m  -o dist/cropt.min.js && node package.mjs dist/cropt.min.js",
+    "build:css": "postcss src/cropt.css -u cssnano --no-map -o dist/cropt.min.css",
+    "build": "npm run build:js:esm && npm run build:js:classic && npm run build:css",
+    "format": "prettier . --write",
+    "start": "http-server ./docs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mindflowgo/cropt.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mindflowgo/cropt/issues"
+  },
+  "homepage": "http://mindflowgo.github.io/cropt/"
 }
