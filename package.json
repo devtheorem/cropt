@@ -31,6 +31,7 @@
     "dist/cropt.d.ts",
     "dist/cropt.min.css",
     "LICENSE",
+    "CHANGELOG.md",
     "README.md"
   ],
   "type": "module",
