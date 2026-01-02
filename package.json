@@ -1,6 +1,6 @@
 {
   "name": "cropt2",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "A lightweight but powerful JavaScript image cropper",
   "keywords": [
     "cropping",
@@ -43,8 +43,8 @@
     "typescript": "^5.7.2"
   },
   "scripts": {
-    "build:js:esm": "tsc --declaration && tsc src/cropt.ts --module ESNext --target ES2017 --outDir dist/esm && terser dist/esm/cropt.js -c -m -o dist/cropt.esm.min.js",
-    "build:js:classic": "tsc src/cropt.ts --target ES2017 --outDir dist/ && terser dist/cropt.js -c -m  -o dist/cropt.min.js && node package.mjs dist/cropt.min.js",
+    "build:js:esm": "tsc --declaration && tsc src/cropt.ts --module ESNext --target ES2017 --outDir dist/esm && terser dist/cropt.js --passes=2 --toplevel -c -m -o dist/cropt.esm.min.js",
+    "build:js:classic": "tsc src/cropt.ts --target ES2017 --outDir dist/ && terser dist/cropt.js --passes=2 --toplevel -c -m  -o dist/cropt.min.js && node package.mjs dist/cropt.min.js",
     "build:css": "postcss src/cropt.css -u cssnano --no-map -o dist/cropt.min.css",
     "build": "npm run build:js:esm && npm run build:js:classic && npm run build:css",
     "format": "prettier . --write",
