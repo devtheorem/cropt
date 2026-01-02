@@ -1,6 +1,6 @@
 {
   "name": "cropt2",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "description": "A lightweight but powerful JavaScript image cropper",
   "keywords": [
     "cropping",
@@ -20,7 +20,9 @@
       "import": "./dist/cropt.esm.min.js",
       "require": "./dist/cropt.min.js",
       "default": "./dist/cropt.min.js"
-    }
+    },
+    "./style": "./dist/cropt.min.css",
+    "./dist/cropt.min.css": "./dist/cropt.min.css"
   },
   "types": "dist/cropt.d.ts",
   "files": [
