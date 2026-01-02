@@ -18,10 +18,11 @@
 .cropt-container .cr-boundary {
     position: relative;
     overflow: hidden;
-    margin: 0 auto;
     z-index: 1;
     width: 100%;
     height: calc(100% - var(--cropt-toolbar, 0px));
+    min-width: 100px;
+    min-height: 100px;
 }
 
 .cropt-container .cr-toolbar-wrap {

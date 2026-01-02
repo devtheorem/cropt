@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en" data-bs-theme="dark">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Cropt v2 - lightweight image cropper</title>
+        <meta name="description" content="Power canvas image cropper: pure javascript, fast, optimized image resizing." />
+
+        <meta property="og:title" content="Cropt - lightweight JavaScript image cropper" />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://mindflowgo.github.io/cropt" />
+        <meta property="og:image" content="https://raw.githubusercontent.com/mindflowgo/cropt/refs/heads/master/docs/assets/hero.png" />
+
+        <link rel="icon" href="https://raw.githubusercontent.com/mindflowgo/cropt/refs/heads/master/docs/assets/cropt.png" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+            media="(prefers-color-scheme: dark)"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css"
+            media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)"
+        />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+
+        <!-- This is the only CSS needed by cropt -->
+        <link rel="stylesheet" href="https://unpkg.com/cropt2@latest/style" />
+
+        <style>
+            /* For bootstrap changing color/dark mode */
+            :root {
+                color-scheme: dark;
+                --bs-primary: #c56aa1;                
+                --bs-body-color: #dee2e6;
+                --bs-primary-text-emphasis: #c180a7;
+                --bs-primary-bg-subtle: #1e0916;
+                --bs-primary-border-subtle: #5b1a41;
+            }
+
+            .bi {
+                margin-top: -4px;
+                margin-right: 2px;
+            }
+
+            .logo {
+                width: 70px;
+                display: inline-block;
+            }
+
+            /* copy buttons */
+            .bg-dark-card {
+                background-color: #1e1e1e;
+                border: 1px solid rgba(255,255,255,0.1);
+                border-radius: 0.5rem;
+            }
+            .code-block {
+                background-color: #121212;
+                color: #ffffff;
+                font-family: 'Courier New', Courier, monospace;
+                padding: 1rem;
+                border-radius: 0.5rem;
+                overflow-x: auto;
+                font-size: 0.9rem;
+            }
+            .card-header {
+                background-color: rgba(255,255,255,0.05);
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+            .copy-btn {
+                position: absolute;
+                top: 0.5rem;
+                right: 0.5rem;
+                background: rgba(255,255,255,0.1);
+                border: none;
+                color: #fff;
+                border-radius: 0.25rem;
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+            .copy-btn:hover {
+                background: rgba(255,255,255,0.2);
+            }
+
+            /* specify container size, need height else crop is 0px high! */
+            .demo-container {
+                width: 320px;
+                height: 380px;
+            }
+
+            .table th {
+                color: var(--bs-body-color);
+            }
+            .table td {
+                color: var(--bs-body-color);
+                border-color: var(--bs-secondary);
+            }
+            .table-dark thead th {
+                border-bottom: 1px solid var(--bs-secondary);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="bg-primary-subtle py-3">
+            <div class="container-md">
+                <h1 class="display-2 mt-2">
+                    <img class="logo" src="https://raw.githubusercontent.com/mindflowgo/cropt/refs/heads/master/docs/assets/cropt.svg" />
+                    Cropt Readme
+                </h1>
+                <p class="lead mt-3">
+                    Cropt is a modern, lightweight image cropper with zero dependencies.
+                </p>
+            </div>
+        </div>
+
+        <!-- Why & How -->
+        <div class="container pt-5">
+            <h1 class="mb-4">Is Cropt For Me?</h1>
+            <p class="lead text-secondary text-muted mb-5">
+                Cropt is a clean ES6 class with clearly structured methods, perfect for cropping avatars, 
+                thumbnails, or any user-uploaded images. It uses a powerful resizing algorithm to prevent 
+                artifacts when shrinking large images, and works seamlessly on mobile and desktop.
+                <br><br>
+                <strong>Key Features:</strong> viewport resizing, rotation, pinch/scroll zoom, keyboard navigation, 
+                and export to Canvas or Blob — all in under 10KB minified.
+            </p>
+        </div>
+
+        <div class="container pt-4">
+            <h1 class="mb-4">Installing</h1>
+            <p class="lead text-secondary text-muted mb-5">Install Cropt as a package, or our Github repo.</p>
+
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="card bg-dark-card h-100 position-relative">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>NPM</span>
+                            <button class="copy-btn" onclick="copyText(event,'npm-code')">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <pre id="npm-code" class="code-block mb-0"><code>npm install cropt2</code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card bg-dark-card h-100 position-relative">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>YARN</span>
+                            <button class="copy-btn" onclick="copyText(event,'yarn-code')">
+                                <i class="bi bi-clipboard"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <pre id="yarn-code" class="code-block mb-0"><code>yarn add cropt2</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card bg-dark-card mb-4 position-relative">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>RECAP: BASIC USAGE</span>
+                    <button class="copy-btn" onclick="copyText(event,'usage-code')">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <pre id="usage-code" class="code-block mb-0"><code>import Cropt from 'cropt2';
+
+const container = document.getElementById('demo');
+const cropt = new Cropt(container);
+cropt.bind('image.jpg');</code></pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sizing Section -->
+        <div class="container pt-5">
+            <h2 class="mb-3">Crop Container</h2>
+            <p class="text-muted">
+                Cropt will fit into the container you place it in. If your container has no height by default, 
+                nothing will appear, so please make sure you specify a minimum height for your container.
+            </p>
+        </div>
+
+        <!-- Options Section -->
+        <div class="container mt-5 pt-5">
+            <h2 class="mb-3">Options</h2>
+            <p class="text-muted mb-4">
+                Pass these as the second argument to the <code>Cropt</code> constructor.
+            </p>
+
+            <div class="table-responsive">
+                <table class="table table-dark table-striped">
+                    <thead>
+                        <tr>
+                            <th>Option</th>
+                            <th>Type</th>
+                            <th>Default</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>mouseWheelZoom</code></td>
+                            <td><code>"off" | "on" | "ctrl"</code></td>
+                            <td><code>"on"</code></td>
+                            <td>Control zoom via mouse wheel. Use <code>"ctrl"</code> to require Ctrl key.</td>
+                        </tr>
+                        <tr>
+                            <td><code>viewport</code></td>
+                            <td><code>{ width, height, borderRadius }</code></td>
+                            <td><code>{ width: 220, height: 220, borderRadius: "0px" }</code></td>
+                            <td>Size and shape of crop area. Use <code>borderRadius: "50%"</code> for circle.</td>
+                        </tr>
+                        <tr>
+                            <td><code>zoomerInputClass</code></td>
+                            <td><code>string</code></td>
+                            <td><code>"cr-slider"</code></td>
+                            <td>Custom class for the zoom slider (e.g., Bootstrap’s <code>"form-range"</code>).</td>
+                        </tr>
+                        <tr>
+                            <td><code>enableZoomSlider</code></td>
+                            <td><code>boolean</code></td>
+                            <td><code>true</code></td>
+                            <td>Show/hide the zoom slider.</td>
+                        </tr>
+                        <tr>
+                            <td><code>enableKeypress</code></td>
+                            <td><code>boolean</code></td>
+                            <td><code>true</code></td>
+                            <td>Enable arrow keys to move image (ignored in input fields).</td>
+                        </tr>
+                        <tr>
+                            <td><code>resizeBars</code></td>
+                            <td><code>boolean</code></td>
+                            <td><code>false</code></td>
+                            <td>Show resize handles to adjust viewport size.</td>
+                        </tr>
+                        <tr>
+                            <td><code>enableRotateBtns</code></td>
+                            <td><code>boolean</code></td>
+                            <td><code>false</code></td>
+                            <td>Show rotation buttons (↺/↻) in toolbar.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Methods Section -->
+<!-- Methods Section -->
+<div class="container mt-5 pt-5">
+    <h2 class="mb-3">Methods</h2>
+    <p class="text-muted mb-4">
+        Methods available on a <code>Cropt</code> instance.
+    </p>
+
+    <div class="accordion" id="methodsAccordion">
+
+        <!-- bind -->
+        <div class="accordion-item bg-dark border-secondary">
+            <h2 class="accordion-header" id="heading-bind">
+                <button class="accordion-button bg-dark collapsed text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-bind" aria-expanded="false" aria-controls="collapse-bind">
+                    bind(src, preset?)
+                </button>
+            </h2>
+            <div id="collapse-bind" class="accordion-collapse collapse" aria-labelledby="heading-bind" data-bs-parent="#methodsAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Loads an image from URL. Optionally pass an initial zoom level (<code>number</code>) or a full preset object to restore a previous state.</p>
+                    <div class="bg-dark-card p-3 rounded mb-2">
+                        <pre class="code-block mb-0"><code>cropt.bind('image.jpg', 1.2); // zoom to 1.2x
+// OR
+cropt.bind('image.jpg', {
+  transform: { x: 10, y: 20, scale: 1.5, rotate: 90 },
+  viewport: { width: 250, height: 250, borderRadius: '8px' }
+});</code></pre>
+                    </div>
+                    <p class="text-muted mb-0">→ Resolves when image is loaded and UI is ready.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- destroy -->
+        <div class="accordion-item bg-dark border-secondary">
+            <h2 class="accordion-header" id="heading-destroy">
+                <button class="accordion-button bg-dark collapsed text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-destroy" aria-expanded="false" aria-controls="collapse-destroy">
+                    destroy()
+                </button>
+            </h2>
+            <div id="collapse-destroy" class="accordion-collapse collapse" aria-labelledby="heading-destroy" data-bs-parent="#methodsAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Cleans up the instance and removes all DOM elements.</p>
+                    <div class="bg-dark-card p-3 rounded mb-2">
+                        <pre class="code-block mb-0"><code>cropt.destroy();</code></pre>
+                    </div>
+                    <p class="text-muted mb-0">→ No return value. Safe to call multiple times.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- refresh -->
+        <div class="accordion-item bg-dark border-secondary">
+            <h2 class="accordion-header" id="heading-refresh">
+                <button class="accordion-button bg-dark collapsed text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-refresh" aria-expanded="false" aria-controls="collapse-refresh">
+                    refresh()
+                </button>
+            </h2>
+            <div id="collapse-refresh" class="accordion-collapse collapse" aria-labelledby="heading-refresh" data-bs-parent="#methodsAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Recalculates layout. Call this if Cropt was hidden during initialization (e.g., in a modal).</p>
+                    <div class="bg-dark-card p-3 rounded mb-2">
+                        <pre class="code-block mb-0"><code>// After modal opens
+modal.addEventListener('shown.bs.modal', () => {
+  cropt.refresh();
+});</code></pre>
+                    </div>
+                    <p class="text-muted mb-0">→ No return value.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- toCanvas -->
+        <div class="accordion-item bg-dark border-secondary">
+            <h2 class="accordion-header" id="heading-toCanvas">
+                <button class="accordion-button bg-dark collapsed text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-toCanvas" aria-expanded="false" aria-controls="collapse-toCanvas">
+                    toCanvas(size?)
+                </button>
+            </h2>
+            <div id="collapse-toCanvas" class="accordion-collapse collapse" aria-labelledby="heading-toCanvas" data-bs-parent="#methodsAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Returns a canvas of the cropped image. If <code>size</code> is provided, the longest side is scaled to that value.</p>
+                    <div class="bg-dark-card p-3 rounded mb-2">
+                        <pre class="code-block mb-0"><code>const canvas = await cropt.toCanvas(500);
+document.body.appendChild(canvas);</code></pre>
+                    </div>
+                    <p class="text-muted mb-0">→ Returns <code>Promise&lt;HTMLCanvasElement&gt;</code>.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- toBlob -->
+        <div class="accordion-item bg-dark border-secondary">
+            <h2 class="accordion-header" id="heading-toBlob">
+                <button class="accordion-button bg-dark collapsed text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-toBlob" aria-expanded="false" aria-controls="collapse-toBlob">
+                    toBlob(size?, type?, quality?)
+                </button>
+            </h2>
+            <div id="collapse-toBlob" class="accordion-collapse collapse" aria-labelledby="heading-toBlob" data-bs-parent="#methodsAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Exports cropped image as Blob. Supports <code>image/webp</code>, <code>image/jpeg</code>, etc. Falls back to JPEG if WebP is unsupported with <code>quality &lt; 1</code>.</p>
+                    <div class="bg-dark-card p-3 rounded mb-2">
+                        <pre class="code-block mb-0"><code>const blob = await cropt.toBlob(800, 'image/jpeg', 0.8);
+const url = URL.createObjectURL(blob);
+img.src = url;</code></pre>
+                    </div>
+                    <p class="text-muted mb-0">→ Returns <code>Promise&lt;Blob&gt;</code> with <code>width</code> and <code>height</code> properties.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- get -->
+        <div class="accordion-item bg-dark border-secondary">
+            <h2 class="accordion-header" id="heading-get">
+                <button class="accordion-button bg-dark collapsed text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-get" aria-expanded="false" aria-controls="collapse-get">
+                    get()
+                </button>
+            </h2>
+            <div id="collapse-get" class="accordion-collapse collapse" aria-labelledby="heading-get" data-bs-parent="#methodsAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Returns current crop state. Use for saving/restoring sessions or server-side cropping.</p>
+                    <div class="bg-dark-card p-3 rounded mb-2">
+                        <pre class="code-block mb-0"><code>const data = cropt.get();
+console.log(data.crop);      // { x, y, width, height }
+console.log(data.transform); // { x, y, scale, rotate, origin }
+console.log(data.viewport);  // { width, height, borderRadius }</code></pre>
+                    </div>
+                    <p class="text-muted mb-0">→ Returns plain object with crop coordinates, transform, and viewport info.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- setOptions -->
+        <div class="accordion-item bg-dark border-secondary">
+            <h2 class="accordion-header" id="heading-setOptions">
+                <button class="accordion-button bg-dark collapsed text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-setOptions" aria-expanded="false" aria-controls="collapse-setOptions">
+                    setOptions(options)
+                </button>
+            </h2>
+            <div id="collapse-setOptions" class="accordion-collapse collapse" aria-labelledby="heading-setOptions" data-bs-parent="#methodsAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Update options dynamically (e.g., change viewport size or enable rotation).</p>
+                    <div class="bg-dark-card p-3 rounded mb-2">
+                        <pre class="code-block mb-0"><code>cropt.setOptions({
+  viewport: { width: 300, height: 300, borderRadius: '50%' },
+  enableRotateBtns: true
+});</code></pre>
+                    </div>
+                    <p class="text-muted mb-0">→ No return value. Re-renders UI if needed.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- setZoom -->
+        <div class="accordion-item bg-dark border-secondary">
+            <h2 class="accordion-header" id="heading-setZoom">
+                <button class="accordion-button bg-dark collapsed text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-setZoom" aria-expanded="false" aria-controls="collapse-setZoom">
+                    setZoom(value)
+                </button>
+            </h2>
+            <div id="collapse-setZoom" class="accordion-collapse collapse" aria-labelledby="heading-setZoom" data-bs-parent="#methodsAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Programatically set zoom level (0–1 range, clamped to Cropt’s min/max).</p>
+                    <div class="bg-dark-card p-3 rounded mb-2">
+                        <pre class="code-block mb-0"><code>cropt.setZoom(0.8);</code></pre>
+                    </div>
+                    <p class="text-muted mb-0">→ No return value.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- setRotation -->
+        <div class="accordion-item bg-dark border-secondary">
+            <h2 class="accordion-header" id="heading-setRotation">
+                <button class="accordion-button bg-dark collapsed text-white fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-setRotation" aria-expanded="false" aria-controls="collapse-setRotation">
+                    setRotation(degrees)
+                </button>
+            </h2>
+            <div id="collapse-setRotation" class="accordion-collapse collapse" aria-labelledby="heading-setRotation" data-bs-parent="#methodsAccordion">
+                <div class="accordion-body">
+                    <p class="text-muted mb-3">Rotate image by 0, 90, 180, or 270 degrees.</p>
+                    <div class="bg-dark-card p-3 rounded mb-2">
+                        <pre class="code-block mb-0"><code>await cropt.setRotation(90);</code></pre>
+                    </div>
+                    <p class="text-muted mb-0">→ Returns <code>Promise&lt;void&gt;</code> (waits for image rotation to complete).</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>       
+
+        <!-- Visibility Note -->
+        <div class="container my-5 pt-5">
+            <div class="alert alert-info d-flex align-items-center" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                <div>
+                    <strong>Visibility Requirement:</strong> Cropt must be <strong>visible</strong> when <code>bind()</code> is called.
+                    If used inside a modal or hidden container, call <code>refresh()</code> after it becomes visible.
+                </div>
+            </div>
+        </div>
+
+        <footer class="d-flex flex-wrap justify-content-between align-items-center mx-2 py-3 border-top border-secondary">
+            <div class="d-flex d-none d-md-flex align-items-center">
+                <b class="text-primary me-1"><i class="bi bi-crop"></i></b>
+                <h6 class="text-light mb-0">Cropt</h6>
+            </div>
+            
+            <div class="d-flex sm:w-100 flex-wrap justify-content-center gap-4">
+                <a href="https://github.com/mindflowgo/cropt" target="_blank" class="text-decoration-none d-flex align-items-center">
+                    <i class="bi bi-github me-1 text-muted"></i>
+                    <span class="text-light">GitHub</span>
+                </a>
+                <a href="https://mindflowgo.github.io/cropt/readme.html" class="text-decoration-none d-flex align-items-center">
+                    <i class="bi bi-book me-1 text-muted"></i>
+                    <span class="text-light">Documentation</span>
+                </a>
+                <a href="https://www.npmjs.com/package/cropt2" target="_blank" class="text-decoration-none d-flex align-items-center">
+                    <i class="bi bi-box-seam me-1 text-muted"></i>
+                    <span class="text-light">NPM</span>
+                </a>
+            </div>
+            
+            <div class="w-100 d-md-none text-center mt-2">
+                <small class="text-muted">Released under the MIT License</small>
+            </div>
+            <div class="d-none d-md-block">
+                <small class="text-muted">Released under the MIT License</small>
+            </div>
+        </footer>
+
+        <script>
+            function copyText(event, id) {
+                const text = document.getElementById(id).textContent.trim();
+                navigator.clipboard.writeText(text).then(() => {
+                    const btn = event.target.closest('.copy-btn');
+                    const icon = btn.querySelector('i');
+                    const originalIcon = icon.className;
+                    icon.className = 'bi bi-check text-success display-6';
+                    setTimeout(() => {
+                        icon.className = originalIcon;
+                    }, 1500);
+                }).catch(err => {
+                    console.error('Failed to copy:', err);
+                });
+            }
+
+            // bootstrap accordian
+            document.addEventListener('click', (e) => {
+                const btn = e.target.closest('.accordion-button');
+                if (!btn) return;
+
+                const collapse = btn.closest('.accordion-item').querySelector('.accordion-collapse');
+                const isExpanded = btn.getAttribute('aria-expanded') === 'true';
+
+                // Toggle aria-expanded
+                btn.setAttribute('aria-expanded', !isExpanded);
+                // Toggle collapse class
+                collapse.classList.toggle('show', !isExpanded);
+            });
+
+            // Initialize syntax highlighting
+            document.addEventListener('DOMContentLoaded', (event) => {
+                hljs.highlightAll();
+            });
+        </script>        
+    </body>
+</html>

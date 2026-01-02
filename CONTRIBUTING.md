@@ -7,8 +7,11 @@ We thank our contributors for helping make Cropt even better:
 [Foliotek/Croppie](https://github.com/Foliotek/Croppie)
     Originally based on Croppie, but rewritten as a modern ES6
 
+[Theodore Brown](https://github.com/devtheorem/)
+    - Simplified Croppie into this streamline solution.
+
 [Filipe Laborde](https://github.com/mindflowgo/)
-    - Croppie-like resize handle grabbers, rotation, get() + preset restoring, and improved packaging.
+    - Enhanced Cropt with Croppie-like resize handle grabbers, rotation, get() + preset restoring, and improved packaging.
 
 ## Quickstart
 First, this is a community project, so the developers and contributors appreciate properly prepared contributions and help by others. Please review the code before making changes to keep with the format of the existing code.
@@ -41,17 +44,17 @@ cropt/
 |   ├── cropt.css           # Cropt CSS
 |   ├── cropt.ts            # Cropt code
 │   └── demo.ts             # Demo javascript
-├── demo/                   # Demo assets (index.html, photos, styles)
-├── docs/                   # Documentation (future?)
+├── docs/                   # Documentation & Demos
 ├── tests/                  # Test files (future?)
 ├── package.json
+├── package.mjs             # Builder script
 └── README.md               # new options & methods document here!
 
 ### Building and Testing
 Test your changes thoroughly. Please try to keep existing behaviour and methods so it will be backwards compatible.
 
 ```bash
-npm run prepare
+npm run build
 npm start
 ```
 

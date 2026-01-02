@@ -1,4 +1,7 @@
 # Changelog
+## [2.0.15] - 2026-01-02
+- Included more documentation, small fixes and CSS tweaks.
+
 ## [2.0.4] - 2025-12-31
 - Extended package options for use in browser, commonjs, etc.
 
