@@ -2,7 +2,7 @@
 // import Cropt from "cropt2";
 
 // access via CDN like this (for modules note 'esm')
-import Cropt from 'https://unpkg.com/cropt2@latest/dist/cropt.esm.min.js';
+import Cropt from 'https://unpkg.com/cropt2@latest?module';
 
 /* bootstrap tabs + modal -------------------------------------- */
 document.addEventListener('click', e => {
@@ -130,7 +130,7 @@ function getCode() {
                 `\n// Pass to bind():`;
     }
     return `// import Cropt from "cropt2"; // npm install cropt2
-import Cropt from 'https://unpkg.com/cropt2@latest/dist/cropt.esm.min.js'; //direct
+import Cropt from 'https://unpkg.com/cropt2@latest?module'; //direct
 
 const cropEl = document.getElementById("${config.id}");
 const resultBtn = document.getElementById("result-btn");
