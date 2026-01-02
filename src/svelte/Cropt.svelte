@@ -1,20 +1,22 @@
 <script>
-/*************************************
+/******************************************************
  * Sample Component for Cropt
  * By Filipe Laborde (fil@rezox.com), MIT License
- * 
- * // place it in your project, ex. in lib
- * import Cropt from '$lib/Componenets/Cropt.svelte'
- * 
- * // now states that will affect the Cropt component in your code
- * let cropUrl = $state(null)
- * let cropt = $state(null)
- * 
- * // you can access all the dropt methods with cropt.toBlob(), cropt.get(), etc.
- * 
- * // now in your actual html: 
- * <Cropt imageSrc={cropUrl} bind:cropt={cropt} {options} {presets} />
-*/
+*******************************************************
+
+// place it in your project, ex. in lib
+import Cropt from '$lib/Componenets/Cropt.svelte'
+ 
+// now states that will affect the Cropt component in your code
+let cropUrl = $state(null)
+let cropt = $state(null)
+ 
+// you can access all the dropt methods with cropt.toBlob(), cropt.get(), etc.
+ 
+// now in your actual html: 
+<Cropt imageSrc={cropUrl} bind:cropt={cropt} {options} {presets} />
+
+******************************************************/
 
 // needs npm install cropt2
 import Cropt from 'cropt2';
