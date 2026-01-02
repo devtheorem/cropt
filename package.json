@@ -9,16 +9,16 @@
     "type": "module",
     "main": "./src/cropt.js",
     "devDependencies": {
-        "bootstrap": "^5.3.3",
-        "gh-pages": "^6.2.0",
+        "bootstrap": "^5.3.8",
+        "gh-pages": "^6.3.0",
         "grunt": "^1.6.1",
         "grunt-cli": "^1.5.0",
         "grunt-contrib-copy": "^1.0.0",
         "grunt-contrib-sass": "^2.0.0",
         "http-server": "^14.1.1",
-        "prettier": "^3.4.1",
-        "sass": "^1.77.6",
-        "typescript": "^5.7.2"
+        "prettier": "^3.7.4",
+        "sass": "1.78",
+        "typescript": "^5.9.3"
     },
     "scripts": {
         "deploy": "gh-pages -d ./demo",
