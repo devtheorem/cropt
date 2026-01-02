@@ -28,6 +28,7 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
 
         <!-- This is the only CSS needed by cropt -->
+        <!-- <link rel="stylesheet" href="../dist/cropt.min.css" /> -->
         <link rel="stylesheet" href="https://unpkg.com/cropt2@latest/style" />
 
         <style>
@@ -41,7 +42,10 @@
                 --bs-primary-border-subtle: #5b1a41;
             }
 
-            
+            .demo-container {
+                width: 320px;
+            }
+
             .bi {
                 margin-top: -4px;
                 margin-right: 2px;
@@ -74,7 +78,7 @@
                         <h1 class="display-2 mt-2">
                             <img class="logo dark-only" src="assets/cropt.svg" />
                             <img class="logo light-only" src="assets/cropt-color.svg" />
-                            Cropt <font size="4">v2.0.8</font>
+                            Cropt <font size="4">v2.0.11</font>
                         </h1>
                         <p class="lead mt-3">
                             Cropt is a modern, lightweight image cropper with zero dependencies.
@@ -113,19 +117,19 @@
                     <div class="col-12 col-md-5">
                         <div class="tab-content" id="demo-tabs-content">
                             <div class="tab-pane fade show active" id="demo1" role="tabpanel">
-                                <p class="text-muted mb-2 text-center">
+                                <p class="text-muted mb-2">
                                     Basic with external viewport adjusting:
                                 </p>
                                 <div id="crop-demo" class="demo-container"></div>
                             </div>
                             <div class="tab-pane fade" id="demo2" role="tabpanel">
-                                <p class="text-muted mb-2 text-center">
+                                <p class="text-muted mb-2">
                                     Cropping from restored preset:
                                 </p>
                                 <div id="crop-demo-2" class="demo-container"></div>
                             </div>
                             <div class="tab-pane fade" id="demo3" role="tabpanel">
-                                <p class="text-muted mb-2 text-center">
+                                <p class="text-muted mb-2">
                                     Rotation and resize handles enabled:
                                 </p>
                                 <div id="crop-demo-3" class="demo-container"></div>
