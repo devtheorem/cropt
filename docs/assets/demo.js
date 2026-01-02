@@ -130,7 +130,7 @@ function getCode() {
                 `\n// Pass to bind():`;
     }
     return `// import Cropt from "cropt2"; // npm install cropt2
-import Cropt from 'https://unpkg.com/cropt2@latest/dist/cropt.min.js'; //direct
+import Cropt from 'https://unpkg.com/cropt2@latest/dist/cropt.esm.min.js'; //direct
 
 const cropEl = document.getElementById("${config.id}");
 const resultBtn = document.getElementById("result-btn");
