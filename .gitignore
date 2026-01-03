@@ -4,3 +4,5 @@ demo/build/
 src/*.js
 src/*.d.ts
 dist/
+pnpm-lock.yaml
+

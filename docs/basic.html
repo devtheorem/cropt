@@ -1,7 +1,8 @@
 <html>
 <head>
-  <link rel="stylesheet" href="https://unpkg.com/input2tags@latest/style" />
-  <script src="https://unpkg.com/input2tags@latest"></script>
+<!-- ** (1) include the css + js file -->
+  <link rel="stylesheet" href="https://unpkg.com/cropt2@latest/style" />
+  <script src="https://unpkg.com/cropt2@latest"></script>
    <!-- <script src="../dist/cropt.min.js"></script> -->
 </head>
 <body>
@@ -11,7 +12,8 @@
     </p>
 <table>
 <tr><td>
-        <div id="crop"></div>
+<!-- ** (2) include container -->
+        <div id="crop" style="width: 320px; height: 320px;"></div>
     </td>
     <td>
         <button onclick="getCrop()">Show Crop &gt;</button>
@@ -27,20 +29,20 @@
 <script>
     const container = document.getElementById('crop');
 
-    // connect cropt to the container element, select options to activate (see README)
+// ** (3) connect cropt to the container element, select options to activate (see README)
     const cropt = new Cropt(container, {
         viewport: { width: 220, height: 220, borderRadius: "50%" },
         resizeBars: true,
         enableRotateBtns: true
         });
 
-    // bind a picture to Cropt
+// ** (4) bind a picture to Cropt, we can generate a crop canvas/blob from it
     cropt.bind("https://raw.githubusercontent.com/mindflowgo/cropt/refs/heads/master/docs/assets/photos/kitten.jpg");
 
     // after zooming, moving, cropping, get the resulting image:
     function getCrop(){
         cropt.toCanvas(500).then( canvas => {
-            // grab the image data
+// ** (5) grab the crop-image data
             document.getElementById('crop-image').src = canvas.toDataURL()
             // copy the image viewport proportions & border curve
             document.getElementById('crop-image').style.width = cropt.options.viewport.width;

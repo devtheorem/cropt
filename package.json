@@ -40,10 +40,10 @@
     "http-server": "^14.1.1",
     "postcss": "^8.5.6",
     "postcss-cli": "^11.0.1",
-    "prettier": "^3.4.1",
-    "sass": "^1.77.6",
+    "prettier": "^3.7.4",
+    "sass": "^1.97.1",
     "terser": "^5.44.1",
-    "typescript": "^5.7.2"
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "build:js:esm": "tsc --declaration && tsc src/cropt.ts --module ESNext --target ES2022 --outDir dist/esm && terser dist/cropt.js -c drop_console=true,dead_code=true,unused=true,passes=3 --toplevel -m -o dist/cropt.esm.min.js",
@@ -60,5 +60,6 @@
   "bugs": {
     "url": "https://github.com/mindflowgo/cropt/issues"
   },
-  "homepage": "http://mindflowgo.github.io/cropt/"
+  "homepage": "https://mindflowgo.github.io/cropt/",
+  "packageManager": "pnpm@10.27.0+sha512.72d699da16b1179c14ba9e64dc71c9a40988cbdc65c264cb0e489db7de917f20dcf4d64d8723625f2969ba52d4b7e2a1170682d9ac2a5dcaeaab732b7e16f04a"
 }
