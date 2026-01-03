@@ -21,6 +21,5 @@ else{
     console.log( `ERROR: Unable to find export'ed class.` )
     process.exit(-1)
 }
-const appendCode = `if(typeof window!=='undefined')window.Cropt=${Class};else if(typeof module!=='undefined'&&module.exports)module.exports=Cropt; else if(typeof define==='function'&&define.amd)define(()=>Cropt);`
-
+const appendCode = `if(typeof window!=='undefined')window.${Class}=${Class};else if(typeof module!=='undefined'&&module.exports)module.exports=${Class}; else if(typeof define==='function'&&define.amd)define(()=>${Class});`
 writeFileSync(output, code + appendCode, 'utf8');
