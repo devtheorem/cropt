@@ -532,6 +532,7 @@ class Cropt {
     }
 
     #setViewportCss() {
+        if (!this.elements?.viewport) return;
         const viewport = this.elements.viewport;
         viewport.style.borderRadius = this.options.viewport?.borderRadius || "50%";
         viewport.style.width = (this.options.viewport?.width || 100) + "px";

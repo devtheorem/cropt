@@ -20,7 +20,7 @@ let cropt = $state(null)
 
 // needs npm install cropt2
 import Cropt from 'cropt2';
-import 'cropt2/style';
+// then in <style>@import "cropt2/style";</style>
 
 let { imageSrc = null, cropt=$bindable(), options = {}, presets = {} }= $props()
 
@@ -76,6 +76,8 @@ $effect(() => {
 <div bind:this={elContainer} class="cropt-container relative"></div>
 
 <style>
+@import "cropt2/style";
+
 .cropt-container {
     border: 1px solid #ddd;
     border-radius: 0.375rem;
