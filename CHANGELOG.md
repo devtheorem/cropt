@@ -1,4 +1,7 @@
 # Changelog
+## [2.0.18] - 2026-01-08
+- Adjusting viewport default size to be container - 60px (instead of 220px by 220px)
+
 ## [2.0.15] - 2026-01-02
 - Included more documentation, small fixes and CSS tweaks.
 

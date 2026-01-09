@@ -1,6 +1,6 @@
 {
   "name": "cropt2",
-  "version": "2.0.17",
+  "version": "2.0.18",
   "description": "A lightweight but powerful JavaScript image cropper",
   "keywords": [
     "cropping",
@@ -8,7 +8,11 @@
     "canvas",
     "image-editing",
     "image-compression",
-    "resizing"
+    "resizing",
+    "rotating",
+    "cropperjs",
+    "thumbnail",
+    "javascript"
   ],
   "author": "Filipe Laborde <fil@rezox.com> + Theodore Brown <theodorejb@outlook.com>",
   "license": "MIT",
