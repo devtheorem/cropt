@@ -13,7 +13,7 @@
 <table>
 <tr><td>
 <!-- ** (2) include container -->
-        <div id="crop" style="width: 320px; height: 320px;"></div>
+        <div id="crop" style="width: 420px; height: 420px;"></div>
     </td>
     <td>
         <button onclick="getCrop()">Show Crop &gt;</button>
@@ -26,15 +26,14 @@
 
 
 
-<script>
+<script type="module">
     // instead of including above in <script> could do this (add "?module" if script type="module"):
     // import Cropt from 'https://unpkg.com/cropt2@latest"
-
     const container = document.getElementById('crop');
 
 // ** (3) connect cropt to the container element, select options to activate (see README)
     const cropt = new Cropt(container, {
-        viewport: { width: 220, height: 220, borderRadius: "50%" },
+        viewport: { borderRadius: "50%" }, // width/height auto-set to container size minus margin if not given
         resizeBars: true,
         enableRotateBtns: true
         });
