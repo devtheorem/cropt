@@ -41,32 +41,19 @@ cropt.bind("path/to/image.jpg");
 
 ### Sizing
 
-The Cropt boundary defaults to 320px wide and 320px high.
-To customize this, override the `.cropt-container .cr-boundary` width and height via CSS.
+The Cropt boundary requires a minimum height of 100px but otherwise it will adjust to the size 
+of the container it is in. If toolbar (rotate, zoom) features, it builds a 32px high toolbar at 
+the bottom.
 
 ## Options
-
-### `mouseWheelZoom`
-
-Type: `"off" | "on" | "ctrl"`  
-Default value: `"on"`
-
-If set to `"off"`, the mouse wheel cannot be used to zoom in and out of the image. If set to `"ctrl"`, the mouse wheel will only zoom in and out while the CTRL key is pressed.
 
 ### `viewport`
 
 Type: `{ width: number, height: number, borderRadius: string }`  
-Default value: `{ width: 220, height: 220, borderRadius: "0px" }`
+Default value: `{ width: [container]-60px, height: [container]-60px, borderRadius: "0px" }`
 
 Defines the size and shape of the crop box.
 For a circle shape, set the border radius to `"50%"`.
-
-### `zoomerInputClass`
-
-Type: `string`  
-Default value: `"cr-slider"`
-
-Optionally set a different class on the zoom range input to customize styling (e.g. set to `"form-range"` when using Bootstrap).
 
 ### `enableZoomSlider`
 
@@ -95,6 +82,21 @@ Type: `boolean`
 Default value: `false`
 
 Toggle if showing rotation buttons beside the zoom slider bar. If both are off (enableZoomSlider and this), the toolbar is hidden.
+
+### `mouseWheelZoom`
+
+Type: `"off" | "on" | "ctrl"`  
+Default value: `"on"`
+
+If set to `"off"`, the mouse wheel cannot be used to zoom in and out of the image. If set to `"ctrl"`, the mouse wheel will only zoom in and out while the CTRL key is pressed.
+
+### `zoomerInputClass`
+
+Type: `string`  
+Default value: `"cr-slider"`
+
+Optionally set a different class on the zoom range input to customize styling (e.g. set to `"form-range"` when using Bootstrap).
+
 
 ## Methods
 
@@ -162,4 +164,5 @@ Cropt should also work in any other modern browser using an engine based on Geck
 ## License
 
 MIT
+
 
