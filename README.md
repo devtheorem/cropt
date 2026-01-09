@@ -35,7 +35,8 @@ npm start
 ```javascript
 import Cropt from "cropt2";
 
-const cropt = new Cropt(document.getElementById('demo'), options);
+const presets = {};
+const cropt = new Cropt(document.getElementById('demo'), presets);
 cropt.bind("path/to/image.jpg");
 ```
 
@@ -164,5 +165,6 @@ Cropt should also work in any other modern browser using an engine based on Geck
 ## License
 
 MIT
+
 
 
