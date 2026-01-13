@@ -448,10 +448,7 @@ export class Cropt {
             if (pEventCache.length === 2) {
                 let touch1 = pEventCache[0];
                 let touch2 = pEventCache[1];
-                let dist = Math.sqrt(
-                    (touch1.pageX - touch2.pageX) * (touch1.pageX - touch2.pageX) +
-                        (touch1.pageY - touch2.pageY) * (touch1.pageY - touch2.pageY),
-                );
+                let dist = Math.hypot(touch1.pageX - touch2.pageX, touch1.pageY - touch2.pageY);
 
                 if (origPinchDistance === 0) {
                     origPinchDistance = dist / this.#scale;
