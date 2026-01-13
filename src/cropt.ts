@@ -56,7 +56,7 @@ function setZoomerVal(value: number, zoomer: HTMLInputElement) {
     const zMin = parseFloat(zoomer.min);
     const zMax = parseFloat(zoomer.max);
 
-    zoomer.value = Math.max(zMin, Math.min(zMax, value)).toFixed(3);
+    zoomer.value = Math.max(zMin, Math.min(zMax, value)).toFixed(4);
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -177,7 +177,7 @@ export class Cropt {
         this.elements.boundary.appendChild(this.elements.overlay);
 
         this.elements.zoomer.type = "range";
-        this.elements.zoomer.step = "0.001";
+        this.elements.zoomer.step = "0.0001";
         this.elements.zoomer.value = "1";
         this.elements.zoomer.setAttribute("aria-label", "zoom");
 
@@ -644,6 +644,7 @@ export class Cropt {
     }
 
     #updateCenterPoint(transform: Transform) {
+        this.elements.preview.style.transform = transform.toString();
         const vpData = this.elements.viewport.getBoundingClientRect();
         const data = this.elements.preview.getBoundingClientRect();
         const curPos = new TransformOrigin(this.elements.preview);
@@ -675,8 +676,9 @@ export class Cropt {
             maxZoom += minZoom;
         }
 
-        this.elements.zoomer.min = minZoom.toFixed(3);
-        this.elements.zoomer.max = maxZoom.toFixed(3);
+        // min zoom cannot be rounded, or large images won't match the viewport size when zoomed out
+        this.elements.zoomer.min = minZoom.toString();
+        this.elements.zoomer.max = maxZoom.toString();
         let zoom = this.#boundZoom;
 
         if (zoom === null) {
