@@ -1,15 +1,24 @@
 # Changelog
 
+## [1.0.1] - 2026-01-13
+### Fixed
+- Janky zoom behavior caused by incorrect center point calculation ([#6]).
+- Zooming out all the way now works as expected with large images ([#6]).
+- Zoom limit now auto-updates when dynamically changing the viewport size.
+
+
 ## [1.0.0] - 2024-12-01
 ### Changed
 - Replaced `viewport.type` option with `viewport.borderRadius`.
 This option takes a string containing a CSS length or percentage, and defaults to `"0px"`.
 To upgrade code that used the `"circle"` viewport type, instead set the border radius to `"50%"`.
 
+
 ## [0.9.1] - 2024-11-07
 ### Changed
 - Removed unnecessary variables.
 - Code is now formatted with Prettier.
+
 
 ## [0.9.0] - 2024-10-23
 ### Fixed
@@ -73,6 +82,8 @@ This is the initial pre-release after forking from [Foliotek/Croppie](https://gi
 
 [#1]: https://github.com/devtheorem/cropt/pull/1
 [#5]: https://github.com/devtheorem/cropt/pull/5
+[#6]: https://github.com/devtheorem/cropt/issues/6
+[1.0.1]: https://github.com/devtheorem/cropt/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/devtheorem/cropt/compare/v0.9.1...v1.0.0
 [0.9.1]: https://github.com/devtheorem/cropt/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/devtheorem/cropt/compare/v0.8.9...v0.9.0
