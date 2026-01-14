@@ -28,9 +28,9 @@ class TransformOrigin {
             this.y = 0;
             return;
         }
-        var css = el.style.transformOrigin.split(" ");
-        this.x = parseFloat(css[0]);
-        this.y = parseFloat(css[1]);
+        const [x, y] = el.style.transformOrigin.split(" ");
+        this.x = parseFloat(x);
+        this.y = parseFloat(y);
     }
     toString() {
         return this.x + "px " + this.y + "px";
@@ -49,7 +49,7 @@ function setZoomerVal(value, zoomer) {
     zoomer.value = Math.max(zMin, Math.min(zMax, value)).toFixed(4);
 }
 function loadImage(src) {
-    var img = new Image();
+    const img = new Image();
     return new Promise(function (resolve, reject) {
         img.onload = () => {
             resolve(img);
@@ -228,7 +228,7 @@ export class Cropt {
     }
     setZoom(value) {
         setZoomerVal(value, this.elements.zoomer);
-        var event = new Event("input");
+        const event = new Event("input");
         this.elements.zoomer.dispatchEvent(event); // triggers this.#onZoom call
     }
     destroy() {
