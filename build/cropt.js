@@ -43,13 +43,10 @@ function debounce(func, wait) {
         timer = setTimeout(() => func(...args), wait);
     };
 }
-function fix(value, decimalPoints) {
-    return value.toFixed(decimalPoints);
-}
 function setZoomerVal(value, zoomer) {
     const zMin = parseFloat(zoomer.min);
     const zMax = parseFloat(zoomer.max);
-    zoomer.value = fix(Math.max(zMin, Math.min(zMax, value)), 3);
+    zoomer.value = Math.max(zMin, Math.min(zMax, value)).toFixed(4);
 }
 function loadImage(src) {
     var img = new Image();
@@ -131,7 +128,7 @@ export class Cropt {
         this.elements.boundary.appendChild(this.elements.viewport);
         this.elements.boundary.appendChild(this.elements.overlay);
         this.elements.zoomer.type = "range";
-        this.elements.zoomer.step = "0.001";
+        this.elements.zoomer.step = "0.0001";
         this.elements.zoomer.value = "1";
         this.elements.zoomer.setAttribute("aria-label", "zoom");
         this.element.appendChild(this.elements.boundary);
@@ -222,11 +219,11 @@ export class Cropt {
         if (options.viewport) {
             options.viewport = { ...this.options.viewport, ...options.viewport };
         }
-        this.options = { ...this.options, ...options };
+        this.options = structuredClone({ ...this.options, ...options });
         this.#setOptionsCss();
         if (this.options.viewport.width !== curWidth ||
             this.options.viewport.height !== curHeight) {
-            this.refresh();
+            this.#updateZoomLimits();
         }
     }
     setZoom(value) {
@@ -355,8 +352,7 @@ export class Cropt {
             if (pEventCache.length === 2) {
                 let touch1 = pEventCache[0];
                 let touch2 = pEventCache[1];
-                let dist = Math.sqrt((touch1.pageX - touch2.pageX) * (touch1.pageX - touch2.pageX) +
-                    (touch1.pageY - touch2.pageY) * (touch1.pageY - touch2.pageY));
+                let dist = Math.hypot(touch1.pageX - touch2.pageX, touch1.pageY - touch2.pageY);
                 if (origPinchDistance === 0) {
                     origPinchDistance = dist / this.#scale;
                 }
@@ -515,6 +511,7 @@ export class Cropt {
         this.#updateOverlay();
     }
     #updateCenterPoint(transform) {
+        this.elements.preview.style.transform = transform.toString();
         const vpData = this.elements.viewport.getBoundingClientRect();
         const data = this.elements.preview.getBoundingClientRect();
         const curPos = new TransformOrigin(this.elements.preview);
@@ -537,8 +534,9 @@ export class Cropt {
         if (minZoom >= maxZoom) {
             maxZoom += minZoom;
         }
-        this.elements.zoomer.min = fix(minZoom, 3);
-        this.elements.zoomer.max = fix(maxZoom, 3);
+        // min zoom cannot be rounded, or large images won't match the viewport size when zoomed out
+        this.elements.zoomer.min = minZoom.toString();
+        this.elements.zoomer.max = maxZoom.toString();
         let zoom = this.#boundZoom;
         if (zoom === null) {
             const bData = this.elements.boundary.getBoundingClientRect();
