@@ -34,9 +34,9 @@ class TransformOrigin {
             this.y = 0;
             return;
         }
-        var css = el.style.transformOrigin.split(" ");
-        this.x = parseFloat(css[0]);
-        this.y = parseFloat(css[1]);
+        const [x, y] = el.style.transformOrigin.split(" ");
+        this.x = parseFloat(x);
+        this.y = parseFloat(y);
     }
 
     toString() {
@@ -60,7 +60,7 @@ function setZoomerVal(value: number, zoomer: HTMLInputElement) {
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
-    var img = new Image();
+    const img = new Image();
 
     return new Promise(function (resolve, reject) {
         img.onload = () => {
@@ -300,7 +300,7 @@ export class Cropt {
 
     setZoom(value: number) {
         setZoomerVal(value, this.elements.zoomer);
-        var event = new Event("input");
+        const event = new Event("input");
         this.elements.zoomer.dispatchEvent(event); // triggers this.#onZoom call
     }
 
