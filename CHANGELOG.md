@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.2] - 2026-01-16
+### Fixed
+- Incorrect step value for range input.
+
+
 ## [1.0.1] - 2026-01-13
 ### Fixed
 - Janky zoom behavior caused by incorrect center point calculation ([#6]).
@@ -83,6 +88,7 @@ This is the initial pre-release after forking from [Foliotek/Croppie](https://gi
 [#1]: https://github.com/devtheorem/cropt/pull/1
 [#5]: https://github.com/devtheorem/cropt/pull/5
 [#6]: https://github.com/devtheorem/cropt/issues/6
+[1.0.2]: https://github.com/devtheorem/cropt/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/devtheorem/cropt/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/devtheorem/cropt/compare/v0.9.1...v1.0.0
 [0.9.1]: https://github.com/devtheorem/cropt/compare/v0.9.0...v0.9.1

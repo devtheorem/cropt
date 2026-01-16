@@ -1,6 +1,6 @@
 {
     "name": "cropt",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "A lightweight JavaScript image cropper",
     "files": [
         "src/cropt.*"
@@ -16,7 +16,7 @@
         "grunt-contrib-copy": "^1.0.0",
         "grunt-contrib-sass": "^2.0.0",
         "http-server": "^14.1.1",
-        "prettier": "^3.7.4",
+        "prettier": "^3.8.0",
         "sass": "1.78",
         "typescript": "^5.9.3"
     },
