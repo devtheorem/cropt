@@ -46,7 +46,7 @@ function debounce(func, wait) {
 function setZoomerVal(value, zoomer) {
     const zMin = parseFloat(zoomer.min);
     const zMax = parseFloat(zoomer.max);
-    zoomer.value = Math.max(zMin, Math.min(zMax, value)).toFixed(4);
+    zoomer.value = Math.max(zMin, Math.min(zMax, value)).toString();
 }
 function loadImage(src) {
     const img = new Image();
@@ -128,7 +128,7 @@ export class Cropt {
         this.elements.boundary.appendChild(this.elements.viewport);
         this.elements.boundary.appendChild(this.elements.overlay);
         this.elements.zoomer.type = "range";
-        this.elements.zoomer.step = "0.0001";
+        this.elements.zoomer.step = "any";
         this.elements.zoomer.value = "1";
         this.elements.zoomer.setAttribute("aria-label", "zoom");
         this.element.appendChild(this.elements.boundary);
