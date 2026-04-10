@@ -12,10 +12,10 @@
         "bootstrap": "^5.3.8",
         "gh-pages": "^6.3.0",
         "http-server": "^14.1.1",
-        "prettier": "^3.8.1",
+        "prettier": "^3.8.2",
         "sass": "1.78",
         "shx": "^0.4.0",
-        "typescript": "^5.9.3"
+        "typescript": "^6.0.2"
     },
     "scripts": {
         "deploy": "gh-pages -d ./demo",
