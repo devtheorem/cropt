@@ -1,13 +1,9 @@
 class Transform {
-    x: number;
-    y: number;
-    scale: number;
-
-    constructor(x: number, y: number, scale: number) {
-        this.x = x;
-        this.y = y;
-        this.scale = scale;
-    }
+    constructor(
+        public x: number,
+        public y: number,
+        public scale: number,
+    ) {}
 
     toString() {
         return `translate(${this.x}px, ${this.y}px) scale(${this.scale})`;
@@ -82,17 +78,12 @@ function getInitialElements() {
     };
 }
 
-function getArrowKeyDeltas(key: string): [number, number] {
-    if (key === "ArrowLeft") {
-        return [2, 0];
-    } else if (key === "ArrowUp") {
-        return [0, 2];
-    } else if (key === "ArrowRight") {
-        return [-2, 0];
-    } else {
-        return [0, -2];
-    }
-}
+const arrowKeyDeltas: Record<string, [number, number]> = {
+    ArrowLeft: [2, 0],
+    ArrowUp: [0, 2],
+    ArrowRight: [-2, 0],
+    ArrowDown: [0, -2],
+};
 
 function clampDelta(innerDiff: number, delta: number, outerDiff: number) {
     return Math.max(Math.min(innerDiff, delta), outerDiff);
@@ -275,25 +266,24 @@ export class Cropt {
         return Promise.resolve(this.#getCanvas(points, width, height));
     }
 
-    toBlob(size: number | null = null, type = "image/webp", quality = 1): Promise<Blob> {
+    async toBlob(size: number | null = null, type = "image/webp", quality = 1): Promise<Blob> {
         if (type === "image/webp" && quality < 1 && !canvasSupportsWebP()) {
             type = "image/jpeg";
         }
 
+        const canvas = await this.toCanvas(size);
         return new Promise((resolve, reject) => {
-            this.toCanvas(size).then((canvas) => {
-                canvas.toBlob(
-                    (blob) => {
-                        if (blob === null) {
-                            reject("Canvas blob is null");
-                        } else {
-                            resolve(blob);
-                        }
-                    },
-                    type,
-                    quality,
-                );
-            });
+            canvas.toBlob(
+                (blob) => {
+                    if (blob === null) {
+                        reject("Canvas blob is null");
+                    } else {
+                        resolve(blob);
+                    }
+                },
+                type,
+                quality,
+            );
         });
     }
 
@@ -552,7 +542,7 @@ export class Cropt {
                 this.setZoom(zoomVal + stepVal);
             } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.key)) {
                 ev.preventDefault();
-                let [deltaX, deltaY] = getArrowKeyDeltas(ev.key);
+                let [deltaX, deltaY] = arrowKeyDeltas[ev.key];
                 this.#assignTransformCoordinates(deltaX, deltaY);
             }
         };
