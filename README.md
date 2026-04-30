@@ -43,6 +43,13 @@ Default value: `{ width: 220, height: 220, borderRadius: "0px" }`
 Defines the size and shape of the crop box.
 For a circle shape, set the border radius to `"50%"`.
 
+### `enableResize`
+
+Type: `boolean`  
+Default value: `false`
+
+If set to `true`, resize handles are shown on the edges of the viewport, allowing the user to adjust its size.
+
 ### `zoomerInputClass`
 
 Type: `string`  
@@ -52,9 +59,25 @@ Optionally set a different class on the zoom range input to customize styling (e
 
 ## Methods
 
-### `bind(src: string, zoom: number | null = null): Promise<void>`
+### `bind(src: string, state: number | CroptState | null = null): Promise<void>`
 
-Takes an image URL as the first argument, and an optional initial zoom value. Returns a `Promise` which resolves when the image has been loaded and state is initialized.
+Takes an image URL as the first argument. Returns a `Promise` which resolves when the image has been loaded and state is initialized.
+
+The optional second argument can be:
+- A `CroptState` object (returned by `getState()`) to restore a previously saved crop position, zoom, and viewport size.
+- A `number` to set only the initial zoom level.
+
+### `getState(): CroptState`
+
+Returns the current crop state as a `CroptState` object with fields `x`, `y`, `zoom`, `width`, and `height`. This can be stored and later passed to `bind()` to restore the crop position, zoom level, and viewport size.
+
+```javascript
+// Save state when the user is done cropping
+const state = cropt.getState();
+
+// Later, restore the same crop position on the same image
+cropt.bind("path/to/image.jpg", state);
+```
 
 ### `destroy(): void`
 

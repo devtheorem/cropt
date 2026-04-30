@@ -1,6 +1,6 @@
 {
     "name": "cropt",
-    "version": "1.0.2",
+    "version": "1.1.1",
     "description": "A lightweight JavaScript image cropper",
     "files": [
         "src/cropt.*"
@@ -12,10 +12,10 @@
         "bootstrap": "^5.3.8",
         "gh-pages": "^6.3.0",
         "http-server": "^14.1.1",
-        "prettier": "^3.8.2",
+        "prettier": "^3.8.3",
         "sass": "1.78",
         "shx": "^0.4.0",
-        "typescript": "^6.0.2"
+        "typescript": "^6.0.3"
     },
     "scripts": {
         "deploy": "gh-pages -d ./demo",

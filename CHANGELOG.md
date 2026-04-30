@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.1] - 2026-04-30
+### Added
+- `enableResize` option: when set to `true`, resize handles are shown on the viewport edges allowing the user to adjust its size ([#9](https://github.com/devtheorem/cropt/issues/9)).
+- `CroptState` interface with fields `x`, `y`, `zoom`, `width`, and `height` representing a saved crop state.
+- `getState()` method to retrieve the current crop state.
+- `bind()` now accepts a `CroptState` object as its second argument to restore zoom, position, and viewport dimensions ([#3](https://github.com/devtheorem/cropt/issues/3), [#10](https://github.com/devtheorem/cropt/issues/10)). Passing a number is still supported for backwards compatibility.
+
+### Changed
+- Refreshed demo site to demonstrate the `enableResize` option and saving/restoring crop state.
+
+> [!NOTE]  
+> Version 1.1.0 was skipped due to a bug with resize handle touchscreen behavior.
+
+
 ## [1.0.2] - 2026-01-16
 ### Fixed
 - Incorrect step value for range input.
@@ -27,12 +41,12 @@ To upgrade code that used the `"circle"` viewport type, instead set the border r
 
 ## [0.9.0] - 2024-10-23
 ### Fixed
-- Cropt now clamps image drags to the viewport boundary, rather than ignoring the delta if it would go past the boundary. This fixes unexpected gaps between the image and viewport edges. ([#5]).
+- Cropt now clamps image drags to the viewport boundary, rather than ignoring the delta if it would go past the boundary. This fixes unexpected gaps between the image and viewport edges. ([#5](https://github.com/devtheorem/cropt/pull/5)).
 
 
 ## [0.8.9] - 2024-06-26
 ### Fixed
-- Image content is no longer doubled when resizing a large image with transparency ([#1]).
+- Image content is no longer doubled when resizing a large image with transparency ([#1](https://github.com/devtheorem/cropt/pull/1)).
 
 
 ## [0.8.8] - 2023-11-21
@@ -85,9 +99,8 @@ This is the initial pre-release after forking from [Foliotek/Croppie](https://gi
 - `enableResize` option.
 - `showZoomer` option (hide via CSS instead if desired).
 
-[#1]: https://github.com/devtheorem/cropt/pull/1
-[#5]: https://github.com/devtheorem/cropt/pull/5
 [#6]: https://github.com/devtheorem/cropt/issues/6
+[1.1.1]: https://github.com/devtheorem/cropt/compare/v1.0.2...v1.1.1
 [1.0.2]: https://github.com/devtheorem/cropt/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/devtheorem/cropt/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/devtheorem/cropt/compare/v0.9.1...v1.0.0
