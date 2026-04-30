@@ -31,12 +31,13 @@ const outputSize = 500;
 let photoSrc = "photos/" + photos[Math.floor(Math.random() * photos.length)];
 
 let options: CroptOptions = {
+    mouseWheelZoom: "on",
     viewport: {
         width: 220,
         height: 220,
         borderRadius: "50%",
     },
-    mouseWheelZoom: "on",
+    enableResize: false,
     zoomerInputClass: "form-range",
 };
 
@@ -97,23 +98,21 @@ function demoMain() {
         cropt.setOptions(options);
     };
 
-    const widthRange = getElById("widthRange") as HTMLInputElement;
-    widthRange.value = options.viewport.width.toString();
+    const enableResizeCheck = getElById("enableResizeCheck") as HTMLInputElement;
+    enableResizeCheck.checked = options.enableResize;
 
-    widthRange.oninput = function (ev) {
-        options.viewport.width = +widthRange.value;
+    enableResizeCheck.onchange = function () {
+        options.enableResize = enableResizeCheck.checked;
         setCode();
         cropt.setOptions(options);
     };
 
-    const heightRange = getElById("heightRange") as HTMLInputElement;
-    heightRange.value = options.viewport.height.toString();
-
-    heightRange.oninput = function (ev) {
-        options.viewport.height = +heightRange.value;
+    cropEl.addEventListener("viewportresize", (ev) => {
+        const { width, height } = (ev as CustomEvent).detail;
+        options.viewport.width = width;
+        options.viewport.height = height;
         setCode();
-        cropt.setOptions(options);
-    };
+    });
 
     const mouseWheelSelect = getElById("mouseWheelSelect") as HTMLSelectElement;
     mouseWheelSelect.value = options.mouseWheelZoom;

@@ -114,6 +114,7 @@ export interface CroptOptions {
         height: number;
         borderRadius: string;
     };
+    enableResize: boolean;
     zoomerInputClass: string;
 }
 
@@ -141,11 +142,15 @@ export class Cropt {
             height: 220,
             borderRadius: "0px",
         },
+        enableResize: false,
         zoomerInputClass: "cr-slider",
     };
     #boundZoom: number | null = null;
     #scale = 1;
     #keyDownHandler: ((ev: KeyboardEvent) => void) | null = null;
+    #resizeHandles: HTMLDivElement | null = null;
+    #maxVpWidth = 0;
+    #maxVpHeight = 0;
     #updateOverlayDebounced = debounce(() => {
         this.#updateOverlay();
     }, 200);
@@ -188,6 +193,10 @@ export class Cropt {
         this.#setOptionsCss();
         this.#initDraggable();
         this.#initializeZoom();
+
+        if (this.options.enableResize) {
+            this.#initResizeHandles();
+        }
     }
 
     /**
@@ -282,6 +291,7 @@ export class Cropt {
     setOptions(options: RecursivePartial<CroptOptions>) {
         const curWidth = this.options.viewport.width;
         const curHeight = this.options.viewport.height;
+        const hadResize = this.options.enableResize;
 
         if (options.viewport) {
             options.viewport = { ...this.options.viewport, ...options.viewport };
@@ -290,10 +300,20 @@ export class Cropt {
         this.options = structuredClone({ ...this.options, ...(options as CroptOptions) });
         this.#setOptionsCss();
 
+        if (this.options.enableResize && !hadResize) {
+            this.#initResizeHandles();
+        } else if (!this.options.enableResize && hadResize) {
+            this.#removeResizeHandles();
+        }
+
         if (
             this.options.viewport.width !== curWidth ||
             this.options.viewport.height !== curHeight
         ) {
+            if (this.#resizeHandles) {
+                this.#maxVpWidth = this.options.viewport.width;
+                this.#maxVpHeight = this.options.viewport.height;
+            }
             this.#updateZoomLimits();
         }
     }
@@ -308,6 +328,7 @@ export class Cropt {
         if (this.#keyDownHandler) {
             document.removeEventListener("keydown", this.#keyDownHandler);
         }
+        this.#removeResizeHandles();
         this.element.removeChild(this.elements.boundary);
         this.element.classList.remove("cropt-container");
         this.element.removeChild(this.elements.zoomerWrap);
@@ -320,6 +341,10 @@ export class Cropt {
         viewport.style.borderRadius = this.options.viewport.borderRadius;
         viewport.style.width = this.options.viewport.width + "px";
         viewport.style.height = this.options.viewport.height + "px";
+        if (this.#resizeHandles) {
+            this.#resizeHandles.style.width = this.options.viewport.width + "px";
+            this.#resizeHandles.style.height = this.options.viewport.height + "px";
+        }
     }
 
     #getUnscaledCanvas(p: CropPoints) {
@@ -388,8 +413,9 @@ export class Cropt {
     #getVirtualBoundaries() {
         const scale = this.#scale;
         const viewport = this.elements.viewport.getBoundingClientRect();
-        const centerFromBoundaryX = this.elements.boundary.clientWidth / 2;
-        const centerFromBoundaryY = this.elements.boundary.clientHeight / 2;
+        const boundRect = this.elements.boundary.getBoundingClientRect();
+        const centerFromBoundaryX = boundRect.width / 2;
+        const centerFromBoundaryY = boundRect.height / 2;
         const imgRect = this.elements.preview.getBoundingClientRect();
         const halfWidth = viewport.width / 2;
         const halfHeight = viewport.height / 2;
@@ -524,6 +550,89 @@ export class Cropt {
         this.elements.overlay.addEventListener("pointerdown", pointerDown);
         document.addEventListener("keydown", keyDown);
         this.#keyDownHandler = keyDown;
+    }
+
+    #initResizeHandles() {
+        if (this.#resizeHandles) return;
+
+        if (this.#maxVpWidth === 0) {
+            this.#maxVpWidth = this.options.viewport.width;
+            this.#maxVpHeight = this.options.viewport.height;
+        }
+
+        const container = document.createElement("div");
+        container.classList.add("cr-resize-handles");
+        container.style.width = this.options.viewport.width + "px";
+        container.style.height = this.options.viewport.height + "px";
+
+        for (const dir of ["n", "e", "s", "w"]) {
+            const handle = document.createElement("div");
+            handle.classList.add("cr-handle", `cr-handle-${dir}`);
+            container.appendChild(handle);
+            this.#initHandleDrag(handle, dir);
+        }
+
+        this.elements.boundary.appendChild(container);
+        this.#resizeHandles = container;
+    }
+
+    #removeResizeHandles() {
+        if (!this.#resizeHandles) return;
+        this.elements.boundary.removeChild(this.#resizeHandles);
+        this.#resizeHandles = null;
+    }
+
+    #initHandleDrag(handle: HTMLDivElement, direction: string) {
+        handle.addEventListener("pointerdown", (ev: PointerEvent) => {
+            if (ev.button) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+
+            const origX = ev.pageX;
+            const origY = ev.pageY;
+            const origW = this.options.viewport.width;
+            const origH = this.options.viewport.height;
+            const minSize = 20;
+
+            handle.setPointerCapture(ev.pointerId);
+
+            const isHoriz = direction === "e" || direction === "w";
+            const sign = direction === "e" || direction === "s" ? 1 : -1;
+
+            const onMove = (ev: PointerEvent) => {
+                ev.preventDefault();
+
+                const [pointerDelta, origSize, maxSize] = isHoriz
+                    ? [ev.pageX - origX, origW, this.#maxVpWidth]
+                    : [ev.pageY - origY, origH, this.#maxVpHeight];
+                const newSize = Math.max(
+                    minSize,
+                    Math.min(maxSize, origSize + 2 * sign * pointerDelta),
+                );
+
+                [this.options.viewport.width, this.options.viewport.height] = isHoriz
+                    ? [newSize, this.#maxVpHeight]
+                    : [this.#maxVpWidth, newSize];
+
+                this.#setOptionsCss();
+                this.#setZoomRange();
+                this.setZoom(this.#scale);
+                this.element.dispatchEvent(
+                    new CustomEvent("viewportresize", {
+                        detail: {
+                            width: this.options.viewport.width,
+                            height: this.options.viewport.height,
+                        },
+                    }),
+                );
+            };
+
+            const ac = new AbortController();
+            const onUp = () => ac.abort();
+            handle.addEventListener("pointermove", onMove, { signal: ac.signal });
+            handle.addEventListener("pointerup", onUp, { signal: ac.signal });
+            handle.addEventListener("pointercancel", onUp, { signal: ac.signal });
+        });
     }
 
     #initializeZoom() {
@@ -663,22 +772,24 @@ export class Cropt {
         this.elements.preview.style.transformOrigin = center.x + "px " + center.y + "px";
     }
 
-    #updateZoomLimits() {
+    #setZoomRange() {
         const img = this.elements.preview;
+        if (img.naturalWidth === 0) return;
         const vpData = this.elements.viewport.getBoundingClientRect();
         const minZoom = Math.max(
             vpData.width / img.naturalWidth,
             vpData.height / img.naturalHeight,
         );
-
         let maxZoom = 0.85;
-        if (minZoom >= maxZoom) {
-            maxZoom += minZoom;
-        }
-
+        if (minZoom >= maxZoom) maxZoom += minZoom;
         // min zoom cannot be rounded, or large images won't match the viewport size when zoomed out
         this.elements.zoomer.min = minZoom.toString();
         this.elements.zoomer.max = maxZoom.toString();
+    }
+
+    #updateZoomLimits() {
+        this.#setZoomRange();
+        const img = this.elements.preview;
         let zoom = this.#boundZoom;
 
         if (zoom === null) {
