@@ -111,6 +111,14 @@ type RecursivePartial<T> = {
     [P in keyof T]?: RecursivePartial<T[P]>;
 };
 
+export interface CroptState {
+    x: number;
+    y: number;
+    zoom: number;
+    width: number;
+    height: number;
+}
+
 export interface CroptOptions {
     mouseWheelZoom: "off" | "on" | "ctrl";
     viewport: {
@@ -164,11 +172,8 @@ export class Cropt {
             throw new Error("Cropt is already initialized on this element");
         }
 
-        if (options.viewport) {
-            options.viewport = { ...this.options.viewport, ...options.viewport };
-        }
-
-        this.options = { ...this.options, ...(options as CroptOptions) };
+        const viewport = { ...this.options.viewport, ...options.viewport };
+        this.options = { ...this.options, ...(options as CroptOptions), viewport };
         this.element = element;
         this.element.classList.add("cropt-container");
 
@@ -204,19 +209,32 @@ export class Cropt {
     }
 
     /**
-     * Bind an image from an src string.
+     * Bind an image from an src string, and optionally restore saved state.
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
-    bind(src: string, zoom: number | null = null) {
+    bind(src: string, state: number | CroptState | null = null) {
         if (!src) {
             throw new Error("src cannot be empty");
         }
 
-        this.#boundZoom = zoom;
+        // continue accepting a number as the second parameter for backwards compatibility
+        this.#boundZoom = typeof state === "number" ? state : (state?.zoom ?? null);
 
         return loadImage(src).then((img) => {
             this.#replaceImage(img);
+            if (state !== null && typeof state !== "number") {
+                this.options.viewport.width = state.width;
+                this.options.viewport.height = state.height;
+                this.#setOptionsCss();
+            }
             this.#updatePropertiesFromImage();
+            if (state !== null && typeof state !== "number") {
+                const points = this.#getPoints();
+                this.#assignTransformCoordinates(
+                    (points.left - state.x) * this.#scale,
+                    (points.top - state.y) * this.#scale,
+                );
+            }
         });
     }
 
@@ -296,11 +314,8 @@ export class Cropt {
         const curHeight = this.options.viewport.height;
         const hadResize = this.options.enableResize;
 
-        if (options.viewport) {
-            options.viewport = { ...this.options.viewport, ...options.viewport };
-        }
-
-        this.options = structuredClone({ ...this.options, ...(options as CroptOptions) });
+        const viewport = { ...this.options.viewport, ...options.viewport };
+        this.options = { ...this.options, ...(options as CroptOptions), viewport };
         this.#setOptionsCss();
 
         if (this.options.enableResize && !hadResize) {
@@ -605,9 +620,8 @@ export class Cropt {
                 const [pointerDelta, origSize, maxSize] = isHoriz
                     ? [ev.pageX - origX, origW, this.#maxVpWidth]
                     : [ev.pageY - origY, origH, this.#maxVpHeight];
-                const newSize = Math.max(
-                    minSize,
-                    Math.min(maxSize, origSize + 2 * sign * pointerDelta),
+                const newSize = Math.round(
+                    Math.max(minSize, Math.min(maxSize, origSize + 2 * sign * pointerDelta)),
                 );
 
                 [this.options.viewport.width, this.options.viewport.height] = isHoriz
@@ -617,14 +631,6 @@ export class Cropt {
                 this.#setOptionsCss();
                 this.#setZoomRange();
                 this.setZoom(this.#scale);
-                this.element.dispatchEvent(
-                    new CustomEvent("viewportresize", {
-                        detail: {
-                            width: this.options.viewport.width,
-                            height: this.options.viewport.height,
-                        },
-                    }),
-                );
             };
 
             const ac = new AbortController();
@@ -677,6 +683,20 @@ export class Cropt {
 
         applyCss();
         this.#updateOverlayDebounced();
+    }
+
+    /**
+     * Returns the current crop state, which can be passed to bind() to restore it later.
+     */
+    getState(): CroptState {
+        const points = this.#getPoints();
+        return {
+            x: points.left,
+            y: points.top,
+            zoom: this.#scale,
+            width: this.options.viewport.width,
+            height: this.options.viewport.height,
+        };
     }
 
     #replaceImage(img: HTMLImageElement) {

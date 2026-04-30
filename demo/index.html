@@ -17,16 +17,16 @@
 
         <link
             rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/atom-one-dark.min.css"
             media="(prefers-color-scheme: dark)"
         />
         <link
             rel="stylesheet"
-            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css"
+            href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/styles/atom-one-light.min.css"
             media="(prefers-color-scheme: light), (prefers-color-scheme: no-preference)"
         />
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.11.1/languages/javascript.min.js"></script>
 
         <style>
             .bi {
@@ -155,9 +155,19 @@
                                 <label for="mouseWheelSelect">Mouse wheel zoom</label>
                             </div>
                         </div>
-                        <div class="mb-3">
+                        <div class="mb-4">
                             <label for="imgFile" class="form-label">Choose image</label>
                             <input id="imgFile" class="form-control" type="file" accept="image/*" />
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button
+                                id="restore-state-btn"
+                                type="button"
+                                class="btn btn-outline-secondary"
+                                style="display: none"
+                            >
+                                Restore previous crop state
+                            </button>
                         </div>
                     </form>
                 </div>
