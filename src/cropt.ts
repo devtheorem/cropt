@@ -98,6 +98,19 @@ function clampDelta(innerDiff: number, delta: number, outerDiff: number) {
     return Math.max(Math.min(innerDiff, delta), outerDiff);
 }
 
+interface AxisBounds {
+    translateMin: number;
+    translateMax: number;
+    originMin: number;
+    originMax: number;
+}
+
+function clampAxis(val: number, curOrigin: number, bounds: AxisBounds): [number, number] {
+    if (val >= bounds.translateMax) return [bounds.translateMax, bounds.originMin];
+    if (val <= bounds.translateMin) return [bounds.translateMin, bounds.originMax];
+    return [val, curOrigin];
+}
+
 function canvasSupportsWebP() {
     // https://caniuse.com/mdn-api_htmlcanvaselement_toblob_type_parameter_webp
     return document.createElement("canvas").toDataURL("image/webp").startsWith("data:image/webp");
@@ -410,33 +423,30 @@ export class Cropt {
         return canvas;
     }
 
-    #getVirtualBoundaries() {
-        const scale = this.#scale;
+    #getVirtualBoundaries(): { x: AxisBounds; y: AxisBounds } {
+        const invScale = 1 / this.#scale;
         const viewport = this.elements.viewport.getBoundingClientRect();
         const boundRect = this.elements.boundary.getBoundingClientRect();
-        const centerFromBoundaryX = boundRect.width / 2;
-        const centerFromBoundaryY = boundRect.height / 2;
         const imgRect = this.elements.preview.getBoundingClientRect();
         const halfWidth = viewport.width / 2;
         const halfHeight = viewport.height / 2;
-
-        const maxX = (halfWidth / scale - centerFromBoundaryX) * -1;
-        const maxY = (halfHeight / scale - centerFromBoundaryY) * -1;
-        const originMinX = (1 / scale) * halfWidth;
-        const originMinY = (1 / scale) * halfHeight;
+        const originMinX = halfWidth * invScale;
+        const originMinY = halfHeight * invScale;
+        const translateMaxX = boundRect.width / 2 - originMinX;
+        const translateMaxY = boundRect.height / 2 - originMinY;
 
         return {
-            translate: {
-                maxX: maxX,
-                minX: maxX - (imgRect.width * (1 / scale) - viewport.width * (1 / scale)),
-                maxY: maxY,
-                minY: maxY - (imgRect.height * (1 / scale) - viewport.height * (1 / scale)),
+            x: {
+                translateMin: translateMaxX - (imgRect.width - viewport.width) * invScale,
+                translateMax: translateMaxX,
+                originMin: originMinX,
+                originMax: imgRect.width * invScale - originMinX,
             },
-            origin: {
-                maxX: imgRect.width * (1 / scale) - originMinX,
-                minX: originMinX,
-                maxY: imgRect.height * (1 / scale) - originMinY,
-                minY: originMinY,
+            y: {
+                translateMin: translateMaxY - (imgRect.height - viewport.height) * invScale,
+                translateMax: translateMaxY,
+                originMin: originMinY,
+                originMax: imgRect.height * invScale - originMinY,
             },
         };
     }
@@ -671,29 +681,9 @@ export class Cropt {
         transform.scale = this.#scale;
         applyCss();
 
-        const boundaries = this.#getVirtualBoundaries();
-        const transBoundaries = boundaries.translate;
-        const oBoundaries = boundaries.origin;
-
-        if (transform.x >= transBoundaries.maxX) {
-            origin.x = oBoundaries.minX;
-            transform.x = transBoundaries.maxX;
-        }
-
-        if (transform.x <= transBoundaries.minX) {
-            origin.x = oBoundaries.maxX;
-            transform.x = transBoundaries.minX;
-        }
-
-        if (transform.y >= transBoundaries.maxY) {
-            origin.y = oBoundaries.minY;
-            transform.y = transBoundaries.maxY;
-        }
-
-        if (transform.y <= transBoundaries.minY) {
-            origin.y = oBoundaries.maxY;
-            transform.y = transBoundaries.minY;
-        }
+        const { x, y } = this.#getVirtualBoundaries();
+        [transform.x, origin.x] = clampAxis(transform.x, origin.x, x);
+        [transform.y, origin.y] = clampAxis(transform.y, origin.y, y);
 
         applyCss();
         this.#updateOverlayDebounced();
