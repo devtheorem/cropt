@@ -21,32 +21,50 @@ const cropElId = "crop-demo";
 const resultBtnId = "result-btn";
 const outputSize = 500;
 let photoSrc = "photos/" + photos[Math.floor(Math.random() * photos.length)];
+let boundSrc = photoSrc;
 let options = {
+    mouseWheelZoom: "on",
     viewport: {
         width: 220,
         height: 220,
         borderRadius: "50%",
     },
-    mouseWheelZoom: "on",
+    enableResize: false,
     zoomerInputClass: "form-range",
 };
+let savedState = null;
 function getCode() {
-    const optionStr = JSON.stringify(options, undefined, 4);
+    const vp = options.viewport;
+    const stateStr = savedState === null
+        ? "null"
+        : `{ x: ${savedState.x}, y: ${savedState.y}, zoom: ${parseFloat(savedState.zoom.toFixed(3))}, width: ${savedState.width}, height: ${savedState.height} }`;
+    const optionStr = `{
+    mouseWheelZoom: "${options.mouseWheelZoom}",
+    viewport: {
+        width: ${vp.width},
+        height: ${vp.height},
+        borderRadius: "${vp.borderRadius}",
+    },
+    enableResize: ${options.enableResize},
+    zoomerInputClass: "${options.zoomerInputClass}",
+}`;
     return `import { Cropt } from "cropt";
 
 const cropEl = document.getElementById("${cropElId}");
 const resultBtn = document.getElementById("${resultBtnId}");
 
+let savedState = ${stateStr};
+
 const cropt = new Cropt(cropEl, ${optionStr});
 
-cropt.bind("${photoSrc}");
+cropt.bind("${photoSrc}", savedState);
 
-resultBtn.addEventListener("click", () => {
-    cropt.toCanvas(${outputSize}).then((canvas) => {
-        let url = canvas.toDataURL();
-        // Data URL can be set as the src of an image element.
-        // Display in modal dialog.
-    });
+resultBtn.addEventListener("click", async () => {
+    savedState = cropt.getState(); // for restoring position/size later
+    const canvas = await cropt.toCanvas(${outputSize});
+    let url = canvas.toDataURL();
+    // Data URL can be set as the src of an image element.
+    // Display in modal dialog.
 });`;
 }
 function getElById(elementId) {
@@ -60,12 +78,24 @@ function setCode() {
     const code = getCode();
     getElById("code-el").innerHTML = hljs.highlight(code, { language: "javascript" }).value;
 }
+function debounce(func, wait) {
+    let timer = 0;
+    return () => {
+        clearTimeout(timer);
+        timer = setTimeout(func, wait);
+    };
+}
+const setCodeDebounced = debounce(setCode, 100);
 function demoMain() {
     const cropEl = getElById(cropElId);
     const resultBtn = getElById(resultBtnId);
+    const restoreStateBtn = getElById("restore-state-btn");
     const cropt = new Cropt(cropEl, options);
     cropt.bind(photoSrc);
     resultBtn.onclick = function () {
+        savedState = cropt.getState();
+        restoreStateBtn.style.display = "";
+        setCode();
         cropt.toCanvas(outputSize).then(function (canvas) {
             popupResult(canvas.toDataURL(), cropt.options.viewport.borderRadius);
         });
@@ -74,29 +104,25 @@ function demoMain() {
     borderRadiusRange.value = parseInt(options.viewport.borderRadius).toString();
     borderRadiusRange.oninput = function (ev) {
         options.viewport.borderRadius = borderRadiusRange.value + "%";
-        setCode();
-        cropt.setOptions(options);
+        setCodeDebounced();
+        cropt.setOptions({ viewport: { borderRadius: options.viewport.borderRadius } });
     };
-    const widthRange = getElById("widthRange");
-    widthRange.value = options.viewport.width.toString();
-    widthRange.oninput = function (ev) {
-        options.viewport.width = +widthRange.value;
+    const enableResizeCheck = getElById("enableResizeCheck");
+    enableResizeCheck.checked = options.enableResize;
+    enableResizeCheck.onchange = function () {
+        options.enableResize = enableResizeCheck.checked;
         setCode();
-        cropt.setOptions(options);
+        cropt.setOptions({ enableResize: options.enableResize });
     };
-    const heightRange = getElById("heightRange");
-    heightRange.value = options.viewport.height.toString();
-    heightRange.oninput = function (ev) {
-        options.viewport.height = +heightRange.value;
-        setCode();
-        cropt.setOptions(options);
+    restoreStateBtn.onclick = () => {
+        cropt.bind(boundSrc, savedState);
     };
     const mouseWheelSelect = getElById("mouseWheelSelect");
     mouseWheelSelect.value = options.mouseWheelZoom;
     mouseWheelSelect.onchange = function (ev) {
         options.mouseWheelZoom = mouseWheelSelect.value;
         setCode();
-        cropt.setOptions(options);
+        cropt.setOptions({ mouseWheelZoom: options.mouseWheelZoom });
     };
     const fileInput = getElById("imgFile");
     fileInput.value = "";
@@ -104,11 +130,14 @@ function demoMain() {
         if (fileInput.files && fileInput.files[0]) {
             const file = fileInput.files[0];
             photoSrc = file.name;
+            savedState = null;
+            restoreStateBtn.style.display = "none";
             setCode();
             const reader = new FileReader();
             reader.onload = (e) => {
                 if (typeof e.target?.result === "string") {
-                    cropt.bind(e.target.result).then(() => {
+                    boundSrc = e.target.result;
+                    cropt.bind(boundSrc).then(() => {
                         console.log("upload bind complete");
                     });
                 }

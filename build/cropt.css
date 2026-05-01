@@ -28,15 +28,19 @@
     width: 320px;
 }
 
+.cropt-container .cr-resize-handles,
 .cropt-container .cr-viewport {
     position: absolute;
     box-sizing: border-box;
-    border: 2px solid #fff;
     margin: auto;
     top: 0;
     bottom: 0;
     right: 0;
     left: 0;
+}
+
+.cropt-container .cr-viewport {
+    border: 2px solid #fff;
     box-shadow: 0 0 2000px 2000px rgba(0, 0, 0, 0.5);
     z-index: 0;
 }
@@ -54,4 +58,48 @@
 
 .cropt-container .cr-slider {
     width: 100%;
+}
+
+.cropt-container .cr-resize-handles {
+    z-index: 2;
+    pointer-events: none;
+}
+
+.cropt-container .cr-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    pointer-events: auto;
+    box-sizing: border-box;
+}
+
+.cropt-container .cr-handle-n,
+.cropt-container .cr-handle-s {
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.cropt-container .cr-handle-e,
+.cropt-container .cr-handle-w {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.cropt-container .cr-handle-n {
+    top: -5px;
+    cursor: n-resize;
+}
+.cropt-container .cr-handle-s {
+    bottom: -5px;
+    cursor: s-resize;
+}
+.cropt-container .cr-handle-e {
+    right: -5px;
+    cursor: e-resize;
+}
+.cropt-container .cr-handle-w {
+    left: -5px;
+    cursor: w-resize;
 }

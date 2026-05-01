@@ -68,22 +68,21 @@ function getInitialElements() {
         zoomer: document.createElement("input"),
     };
 }
-function getArrowKeyDeltas(key) {
-    if (key === "ArrowLeft") {
-        return [2, 0];
-    }
-    else if (key === "ArrowUp") {
-        return [0, 2];
-    }
-    else if (key === "ArrowRight") {
-        return [-2, 0];
-    }
-    else {
-        return [0, -2];
-    }
-}
+const arrowKeyDeltas = {
+    ArrowLeft: [2, 0],
+    ArrowUp: [0, 2],
+    ArrowRight: [-2, 0],
+    ArrowDown: [0, -2],
+};
 function clampDelta(innerDiff, delta, outerDiff) {
     return Math.max(Math.min(innerDiff, delta), outerDiff);
+}
+function clampAxis(val, curOrigin, bounds) {
+    if (val >= bounds.translateMax)
+        return [bounds.translateMax, bounds.originMin];
+    if (val <= bounds.translateMin)
+        return [bounds.translateMin, bounds.originMax];
+    return [val, curOrigin];
 }
 function canvasSupportsWebP() {
     // https://caniuse.com/mdn-api_htmlcanvaselement_toblob_type_parameter_webp
@@ -99,11 +98,15 @@ export class Cropt {
             height: 220,
             borderRadius: "0px",
         },
+        enableResize: false,
         zoomerInputClass: "cr-slider",
     };
     #boundZoom = null;
     #scale = 1;
     #keyDownHandler = null;
+    #resizeHandles = null;
+    #maxVpWidth = 0;
+    #maxVpHeight = 0;
     #updateOverlayDebounced = debounce(() => {
         this.#updateOverlay();
     }, 200);
@@ -111,10 +114,8 @@ export class Cropt {
         if (element.classList.contains("cropt-container")) {
             throw new Error("Cropt is already initialized on this element");
         }
-        if (options.viewport) {
-            options.viewport = { ...this.options.viewport, ...options.viewport };
-        }
-        this.options = { ...this.options, ...options };
+        const viewport = { ...this.options.viewport, ...options.viewport };
+        this.options = { ...this.options, ...options, viewport };
         this.element = element;
         this.element.classList.add("cropt-container");
         this.elements = getInitialElements();
@@ -137,19 +138,32 @@ export class Cropt {
         this.#setOptionsCss();
         this.#initDraggable();
         this.#initializeZoom();
+        if (this.options.enableResize) {
+            this.#initResizeHandles();
+        }
     }
     /**
-     * Bind an image from an src string.
+     * Bind an image from an src string, and optionally restore saved state.
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
-    bind(src, zoom = null) {
+    bind(src, state = null) {
         if (!src) {
             throw new Error("src cannot be empty");
         }
-        this.#boundZoom = zoom;
+        // continue accepting a number as the second parameter for backwards compatibility
+        this.#boundZoom = typeof state === "number" ? state : (state?.zoom ?? null);
         return loadImage(src).then((img) => {
             this.#replaceImage(img);
+            if (state !== null && typeof state !== "number") {
+                this.options.viewport.width = state.width;
+                this.options.viewport.height = state.height;
+                this.#setOptionsCss();
+            }
             this.#updatePropertiesFromImage();
+            if (state !== null && typeof state !== "number") {
+                const points = this.#getPoints();
+                this.#assignTransformCoordinates((points.left - state.x) * this.#scale, (points.top - state.y) * this.#scale);
+            }
         });
     }
     #getPoints() {
@@ -193,21 +207,20 @@ export class Cropt {
         }
         return Promise.resolve(this.#getCanvas(points, width, height));
     }
-    toBlob(size = null, type = "image/webp", quality = 1) {
+    async toBlob(size = null, type = "image/webp", quality = 1) {
         if (type === "image/webp" && quality < 1 && !canvasSupportsWebP()) {
             type = "image/jpeg";
         }
+        const canvas = await this.toCanvas(size);
         return new Promise((resolve, reject) => {
-            this.toCanvas(size).then((canvas) => {
-                canvas.toBlob((blob) => {
-                    if (blob === null) {
-                        reject("Canvas blob is null");
-                    }
-                    else {
-                        resolve(blob);
-                    }
-                }, type, quality);
-            });
+            canvas.toBlob((blob) => {
+                if (blob === null) {
+                    reject("Canvas blob is null");
+                }
+                else {
+                    resolve(blob);
+                }
+            }, type, quality);
         });
     }
     refresh() {
@@ -216,13 +229,22 @@ export class Cropt {
     setOptions(options) {
         const curWidth = this.options.viewport.width;
         const curHeight = this.options.viewport.height;
-        if (options.viewport) {
-            options.viewport = { ...this.options.viewport, ...options.viewport };
-        }
-        this.options = structuredClone({ ...this.options, ...options });
+        const hadResize = this.options.enableResize;
+        const viewport = { ...this.options.viewport, ...options.viewport };
+        this.options = { ...this.options, ...options, viewport };
         this.#setOptionsCss();
+        if (this.options.enableResize && !hadResize) {
+            this.#initResizeHandles();
+        }
+        else if (!this.options.enableResize && hadResize) {
+            this.#removeResizeHandles();
+        }
         if (this.options.viewport.width !== curWidth ||
             this.options.viewport.height !== curHeight) {
+            if (this.#resizeHandles) {
+                this.#maxVpWidth = this.options.viewport.width;
+                this.#maxVpHeight = this.options.viewport.height;
+            }
             this.#updateZoomLimits();
         }
     }
@@ -235,6 +257,7 @@ export class Cropt {
         if (this.#keyDownHandler) {
             document.removeEventListener("keydown", this.#keyDownHandler);
         }
+        this.#removeResizeHandles();
         this.element.removeChild(this.elements.boundary);
         this.element.classList.remove("cropt-container");
         this.element.removeChild(this.elements.zoomerWrap);
@@ -246,6 +269,10 @@ export class Cropt {
         viewport.style.borderRadius = this.options.viewport.borderRadius;
         viewport.style.width = this.options.viewport.width + "px";
         viewport.style.height = this.options.viewport.height + "px";
+        if (this.#resizeHandles) {
+            this.#resizeHandles.style.width = this.options.viewport.width + "px";
+            this.#resizeHandles.style.height = this.options.viewport.height + "px";
+        }
     }
     #getUnscaledCanvas(p) {
         const sWidth = p.right - p.left;
@@ -298,29 +325,28 @@ export class Cropt {
         return canvas;
     }
     #getVirtualBoundaries() {
-        const scale = this.#scale;
+        const invScale = 1 / this.#scale;
         const viewport = this.elements.viewport.getBoundingClientRect();
-        const centerFromBoundaryX = this.elements.boundary.clientWidth / 2;
-        const centerFromBoundaryY = this.elements.boundary.clientHeight / 2;
+        const boundRect = this.elements.boundary.getBoundingClientRect();
         const imgRect = this.elements.preview.getBoundingClientRect();
         const halfWidth = viewport.width / 2;
         const halfHeight = viewport.height / 2;
-        const maxX = (halfWidth / scale - centerFromBoundaryX) * -1;
-        const maxY = (halfHeight / scale - centerFromBoundaryY) * -1;
-        const originMinX = (1 / scale) * halfWidth;
-        const originMinY = (1 / scale) * halfHeight;
+        const originMinX = halfWidth * invScale;
+        const originMinY = halfHeight * invScale;
+        const translateMaxX = boundRect.width / 2 - originMinX;
+        const translateMaxY = boundRect.height / 2 - originMinY;
         return {
-            translate: {
-                maxX: maxX,
-                minX: maxX - (imgRect.width * (1 / scale) - viewport.width * (1 / scale)),
-                maxY: maxY,
-                minY: maxY - (imgRect.height * (1 / scale) - viewport.height * (1 / scale)),
+            x: {
+                translateMin: translateMaxX - (imgRect.width - viewport.width) * invScale,
+                translateMax: translateMaxX,
+                originMin: originMinX,
+                originMax: imgRect.width * invScale - originMinX,
             },
-            origin: {
-                maxX: imgRect.width * (1 / scale) - originMinX,
-                minX: originMinX,
-                maxY: imgRect.height * (1 / scale) - originMinY,
-                minY: originMinY,
+            y: {
+                translateMin: translateMaxY - (imgRect.height - viewport.height) * invScale,
+                translateMax: translateMaxY,
+                originMin: originMinY,
+                originMax: imgRect.height * invScale - originMinY,
             },
         };
     }
@@ -408,13 +434,73 @@ export class Cropt {
             }
             else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.key)) {
                 ev.preventDefault();
-                let [deltaX, deltaY] = getArrowKeyDeltas(ev.key);
+                let [deltaX, deltaY] = arrowKeyDeltas[ev.key];
                 this.#assignTransformCoordinates(deltaX, deltaY);
             }
         };
         this.elements.overlay.addEventListener("pointerdown", pointerDown);
         document.addEventListener("keydown", keyDown);
         this.#keyDownHandler = keyDown;
+    }
+    #initResizeHandles() {
+        if (this.#resizeHandles)
+            return;
+        if (this.#maxVpWidth === 0) {
+            this.#maxVpWidth = this.options.viewport.width;
+            this.#maxVpHeight = this.options.viewport.height;
+        }
+        const container = document.createElement("div");
+        container.classList.add("cr-resize-handles");
+        container.style.width = this.options.viewport.width + "px";
+        container.style.height = this.options.viewport.height + "px";
+        for (const dir of ["n", "e", "s", "w"]) {
+            const handle = document.createElement("div");
+            handle.classList.add("cr-handle", `cr-handle-${dir}`);
+            container.appendChild(handle);
+            this.#initHandleDrag(handle, dir);
+        }
+        this.elements.boundary.appendChild(container);
+        this.#resizeHandles = container;
+    }
+    #removeResizeHandles() {
+        if (!this.#resizeHandles)
+            return;
+        this.elements.boundary.removeChild(this.#resizeHandles);
+        this.#resizeHandles = null;
+    }
+    #initHandleDrag(handle, direction) {
+        handle.addEventListener("pointerdown", (ev) => {
+            if (ev.button)
+                return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            const origX = ev.pageX;
+            const origY = ev.pageY;
+            const origW = this.options.viewport.width;
+            const origH = this.options.viewport.height;
+            const minSize = 20;
+            handle.setPointerCapture(ev.pointerId);
+            const isHoriz = direction === "e" || direction === "w";
+            const sign = direction === "e" || direction === "s" ? 1 : -1;
+            const onMove = (ev) => {
+                ev.preventDefault();
+                const [pointerDelta, origSize, maxSize] = isHoriz
+                    ? [ev.pageX - origX, origW, this.#maxVpWidth]
+                    : [ev.pageY - origY, origH, this.#maxVpHeight];
+                const newSize = Math.round(Math.max(minSize, Math.min(maxSize, origSize + 2 * sign * pointerDelta)));
+                [this.options.viewport.width, this.options.viewport.height] = isHoriz
+                    ? [newSize, this.#maxVpHeight]
+                    : [this.#maxVpWidth, newSize];
+                this.#setOptionsCss();
+                this.#setZoomRange();
+                this.setZoom(this.#scale);
+            };
+            const ac = new AbortController();
+            const onUp = () => ac.abort();
+            handle.addEventListener("pointermove", onMove, { signal: ac.signal });
+            handle.addEventListener("pointerup", onUp, { signal: ac.signal });
+            handle.addEventListener("pointercancel", onUp, { signal: ac.signal });
+        });
     }
     #initializeZoom() {
         let change = () => {
@@ -445,27 +531,24 @@ export class Cropt {
         this.#scale = parseFloat(this.elements.zoomer.value);
         transform.scale = this.#scale;
         applyCss();
-        const boundaries = this.#getVirtualBoundaries();
-        const transBoundaries = boundaries.translate;
-        const oBoundaries = boundaries.origin;
-        if (transform.x >= transBoundaries.maxX) {
-            origin.x = oBoundaries.minX;
-            transform.x = transBoundaries.maxX;
-        }
-        if (transform.x <= transBoundaries.minX) {
-            origin.x = oBoundaries.maxX;
-            transform.x = transBoundaries.minX;
-        }
-        if (transform.y >= transBoundaries.maxY) {
-            origin.y = oBoundaries.minY;
-            transform.y = transBoundaries.maxY;
-        }
-        if (transform.y <= transBoundaries.minY) {
-            origin.y = oBoundaries.maxY;
-            transform.y = transBoundaries.minY;
-        }
+        const { x, y } = this.#getVirtualBoundaries();
+        [transform.x, origin.x] = clampAxis(transform.x, origin.x, x);
+        [transform.y, origin.y] = clampAxis(transform.y, origin.y, y);
         applyCss();
         this.#updateOverlayDebounced();
+    }
+    /**
+     * Returns the current crop state, which can be passed to bind() to restore it later.
+     */
+    getState() {
+        const points = this.#getPoints();
+        return {
+            x: points.left,
+            y: points.top,
+            zoom: this.#scale,
+            width: this.options.viewport.width,
+            height: this.options.viewport.height,
+        };
     }
     #replaceImage(img) {
         this.#setPreviewAttributes(img);
@@ -526,17 +609,22 @@ export class Cropt {
         this.elements.preview.style.transform = transform.toString();
         this.elements.preview.style.transformOrigin = center.x + "px " + center.y + "px";
     }
-    #updateZoomLimits() {
+    #setZoomRange() {
         const img = this.elements.preview;
+        if (img.naturalWidth === 0)
+            return;
         const vpData = this.elements.viewport.getBoundingClientRect();
         const minZoom = Math.max(vpData.width / img.naturalWidth, vpData.height / img.naturalHeight);
         let maxZoom = 0.85;
-        if (minZoom >= maxZoom) {
+        if (minZoom >= maxZoom)
             maxZoom += minZoom;
-        }
         // min zoom cannot be rounded, or large images won't match the viewport size when zoomed out
         this.elements.zoomer.min = minZoom.toString();
         this.elements.zoomer.max = maxZoom.toString();
+    }
+    #updateZoomLimits() {
+        this.#setZoomRange();
+        const img = this.elements.preview;
         let zoom = this.#boundZoom;
         if (zoom === null) {
             const bData = this.elements.boundary.getBoundingClientRect();
