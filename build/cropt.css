@@ -67,12 +67,20 @@
 
 .cropt-container .cr-handle {
     position: absolute;
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
     background: #fff;
-    border: 1px solid rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 50%;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
     pointer-events: auto;
     box-sizing: border-box;
+}
+
+.cropt-container .cr-handle::before {
+    content: "";
+    position: absolute;
+    inset: -17px;
 }
 
 .cropt-container .cr-handle-n,
@@ -88,18 +96,18 @@
 }
 
 .cropt-container .cr-handle-n {
-    top: -5px;
+    top: -6px;
     cursor: n-resize;
 }
 .cropt-container .cr-handle-s {
-    bottom: -5px;
+    bottom: -6px;
     cursor: s-resize;
 }
 .cropt-container .cr-handle-e {
-    right: -5px;
+    right: -6px;
     cursor: e-resize;
 }
 .cropt-container .cr-handle-w {
-    left: -5px;
+    left: -6px;
     cursor: w-resize;
 }
