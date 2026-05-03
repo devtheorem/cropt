@@ -36,7 +36,7 @@ let options: CroptOptions = {
     viewport: {
         width: 220,
         height: 220,
-        borderRadius: "50%",
+        borderRadius: "0px",
     },
     enableResize: false,
     zoomerInputClass: "form-range",

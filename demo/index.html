@@ -1,11 +1,12 @@
 <!doctype html>
 <html lang="en">
     <head>
+        <title>Cropt - a delightful JS image cropper</title>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Cropt - lightweight image cropper</title>
+        <meta name="color-scheme" content="light dark" />
 
-        <meta property="og:title" content="Cropt - lightweight JavaScript image cropper" />
+        <meta property="og:title" content="Cropt - a delightful JS image cropper" />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://devtheorem.github.io/cropt" />
         <meta property="og:image" content="https://devtheorem.github.io/cropt/hero.png" />
@@ -46,7 +47,6 @@
                 .light-only {
                     display: none;
                 }
-
                 .dark-only {
                     display: inline-block;
                 }
@@ -64,7 +64,7 @@
                             Cropt
                         </h1>
                         <p class="lead mt-3">
-                            Cropt is a modern, lightweight image cropper with zero dependencies.
+                            A delightful JS image cropper with zero dependencies.
                         </p>
 
                         <p class="mb-4">
@@ -94,10 +94,34 @@
 
         <div class="container-md">
             <div class="row my-3 align-items-center">
-                <div class="col-7">
+                <div class="col-3">
                     <h2>Demo</h2>
                 </div>
-                <div class="col-5 text-end">
+                <div class="col-9 text-end">
+                    <button
+                        id="restore-state-btn"
+                        class="btn btn-outline-secondary me-2"
+                        style="display: none"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="16"
+                            height="16"
+                            fill="currentColor"
+                            class="bi bi-arrow-counterclockwise"
+                            viewBox="0 0 16 16"
+                        >
+                            <path
+                                fill-rule="evenodd"
+                                d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z"
+                            />
+                            <path
+                                d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466"
+                            />
+                        </svg>
+                        Restore state
+                    </button>
+
                     <button id="result-btn" class="btn btn-primary">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -116,13 +140,23 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-12 col-md-7">
+                <div class="col-12 col-md-7 order-2 order-md-1">
                     <pre
                         class="border border-5 border-primary border-top-0 border-end-0 border-bottom-0"
                     ><code class="language-javascript hljs" id="code-el"></code></pre>
                 </div>
-                <div class="col-12 col-md-5">
+                <div class="col-12 col-md-5 order-1 order-md-2">
                     <form>
+                        <div class="mb-3 form-check">
+                            <input
+                                type="checkbox"
+                                class="form-check-input"
+                                id="enableResizeCheck"
+                            />
+                            <label class="form-check-label" for="enableResizeCheck">
+                                Enable resize
+                            </label>
+                        </div>
                         <div class="mb-2">
                             <label for="borderRadiusRange" class="form-label">
                                 Viewport border-radius
@@ -134,16 +168,6 @@
                                 min="0"
                                 max="50"
                             />
-                        </div>
-                        <div class="mb-3 form-check">
-                            <input
-                                type="checkbox"
-                                class="form-check-input"
-                                id="enableResizeCheck"
-                            />
-                            <label class="form-check-label" for="enableResizeCheck">
-                                Enable resize
-                            </label>
                         </div>
                         <div class="mb-3">
                             <div class="form-floating">
@@ -158,16 +182,6 @@
                         <div class="mb-4">
                             <label for="imgFile" class="form-label">Choose image</label>
                             <input id="imgFile" class="form-control" type="file" accept="image/*" />
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button
-                                id="restore-state-btn"
-                                type="button"
-                                class="btn btn-outline-secondary"
-                                style="display: none"
-                            >
-                                Restore previous crop state
-                            </button>
                         </div>
                     </form>
                 </div>

@@ -1,6 +1,9 @@
-# Cropt - lightweight JavaScript image cropper
+# Cropt
 
-Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie), but rewritten as a modern ES module with a simpler API, higher quality image scaling, and numerous other improvements.
+A delightful JS image cropper with zero dependencies.
+
+Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie),
+but rewritten as a modern ES module with a simpler API, better image scaling, and native TypeScript support.
 
 ## Installation
 
@@ -33,7 +36,8 @@ To customize this, override the `.cropt-container .cr-boundary` width and height
 Type: `"off" | "on" | "ctrl"`  
 Default value: `"on"`
 
-If set to `"off"`, the mouse wheel cannot be used to zoom in and out of the image. If set to `"ctrl"`, the mouse wheel will only zoom in and out while the CTRL key is pressed.
+If set to `"off"`, the mouse wheel cannot be used to zoom in and out of the image.
+If set to `"ctrl"`, the mouse wheel will only zoom in and out while the CTRL key is pressed.
 
 ### `viewport`
 
@@ -59,7 +63,7 @@ Optionally set a different class on the zoom range input to customize styling (e
 
 ## Methods
 
-### `bind(src: string, state: number | CroptState | null = null): Promise<void>`
+### `bind(src: string, state: CroptState | number | null = null): Promise<void>`
 
 Takes an image URL as the first argument. Returns a `Promise` which resolves when the image has been loaded and state is initialized.
 
@@ -69,7 +73,8 @@ The optional second argument can be:
 
 ### `getState(): CroptState`
 
-Returns the current crop state as a `CroptState` object with fields `x`, `y`, `zoom`, `width`, and `height`. This can be stored and later passed to `bind()` to restore the crop position, zoom level, and viewport size.
+Returns the current crop state as a `CroptState` object with fields `x`, `y`, `zoom`, `width`, and `height`.
+This can be stored and later passed to `bind()` to restore the crop position, zoom level, and viewport size.
 
 ```javascript
 // Save state when the user is done cropping
@@ -89,11 +94,15 @@ Recalculate points for the image. Necessary if the instance was initially bound 
 
 ### `toCanvas(size: number | null = null): Promise<HTMLCanvasElement>`
 
-Returns a `Promise` resolving to an `HTMLCanvasElement` object for the cropped image. If `size` is specified, the cropped image will be scaled with its longest side set to this value.
+Returns a `Promise` resolving to an `HTMLCanvasElement` object for the cropped image.
+If `size` is specified, the cropped image will be scaled with its longest side set to this value.
 
 ### `toBlob(size: number | null = null, type = "image/webp", quality = 1): Promise<Blob>`
 
-Returns a Promise resolving to a `Blob` object for the cropped image. If `size` is specified, the cropped image will be scaled with its longest side set to this value. The `type` and `quality` parameters are passed directly to the corresponding [HTMLCanvasElement.toBlob()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob) method parameters.
+Returns a Promise resolving to a `Blob` object for the cropped image.
+If `size` is specified, the cropped image will be scaled with its longest side set to this value.
+The `type` and `quality` parameters are passed directly to the corresponding
+[HTMLCanvasElement.toBlob()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob) method parameters.
 
 ### `setOptions(options: CroptOptions): void`
 
@@ -105,7 +114,8 @@ Set the zoom of a Cropt instance. The value must be between 0 and 1, and is rest
 
 ## Visibility and binding
 
-Cropt is dependent on its container being visible when the bind method is called. This can be an issue when your component is inside a modal that isn't shown. Consider the Bootstrap modal, for example:
+Cropt is dependent on its container being visible when the bind method is called.
+This can be an issue when your component is inside a modal that isn't shown. Consider the Bootstrap modal, for example:
 
 ```javascript
 const cropEl = document.getElementById('my-cropt');
@@ -117,7 +127,9 @@ myModal.addEventListener('shown.bs.modal', () => {
 });
 ```
 
-If you have issues getting the correct result, and your Cropt instance is shown inside a modal, try taking it out of the modal and see if the issue persists. If not, make sure that your bind method is called after the modal finishes opening.
+If you have issues getting the correct result, and your Cropt instance is shown inside a modal,
+try taking it out of the modal and see if the issue persists.
+If not, make sure that your bind method is called after the modal finishes opening.
 
 If a Cropt instance needs to be hidden and then re-shown, call the `refresh()` method to recalculate properties for the displayed image.
 
