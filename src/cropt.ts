@@ -219,8 +219,10 @@ export class Cropt {
 
         // continue accepting a number as the second parameter for backwards compatibility
         this.#boundZoom = typeof state === "number" ? state : (state?.zoom ?? null);
+        this.elements.boundary.classList.add("cr-loading");
 
         return loadImage(src).then((img) => {
+            this.elements.boundary.classList.remove("cr-loading");
             this.#replaceImage(img);
             if (state !== null && typeof state !== "number") {
                 this.options.viewport.width = state.width;
