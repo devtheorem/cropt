@@ -182,8 +182,7 @@ export class Cropt {
             throw new Error("Cropt is already initialized on this element");
         }
 
-        const viewport = { ...this.options.viewport, ...options.viewport };
-        this.options = { ...this.options, ...(options as CroptOptions), viewport };
+        this.#mergeOptions(options);
         this.#vpWidth = this.options.viewport.width;
         this.#vpHeight = this.options.viewport.height;
         this.element = element;
@@ -338,13 +337,17 @@ export class Cropt {
         this.#updatePropertiesFromImage();
     }
 
+    #mergeOptions(options: RecursivePartial<CroptOptions>) {
+        const viewport = { ...this.options.viewport, ...options.viewport };
+        this.options = { ...this.options, ...(options as CroptOptions), viewport };
+    }
+
     setOptions(options: RecursivePartial<CroptOptions>) {
         const curWidth = this.#vpWidth;
         const curHeight = this.#vpHeight;
         const hadResize = this.options.enableResize;
 
-        const viewport = { ...this.options.viewport, ...options.viewport };
-        this.options = { ...this.options, ...(options as CroptOptions), viewport };
+        this.#mergeOptions(options);
         if (options.viewport?.width !== undefined) this.#vpWidth = this.options.viewport.width;
         if (options.viewport?.height !== undefined) this.#vpHeight = this.options.viewport.height;
         this.#setOptionsCss();
@@ -519,6 +522,15 @@ export class Cropt {
         let originalY = 0;
         let pEventCache: PointerEvent[] = [];
         let origPinchDistance = 0;
+        let pendingDeltaX = 0;
+        let pendingDeltaY = 0;
+        let rafId = 0;
+
+        let flushPending = () => {
+            this.#assignTransformCoordinates(pendingDeltaX, pendingDeltaY);
+            pendingDeltaX = 0;
+            pendingDeltaY = 0;
+        };
 
         let pointerMove = (ev: PointerEvent) => {
             ev.preventDefault();
@@ -547,9 +559,17 @@ export class Cropt {
                 return; // ignore single pointer movement after pinch zoom
             }
 
-            this.#assignTransformCoordinates(ev.pageX - originalX, ev.pageY - originalY);
+            pendingDeltaX += ev.pageX - originalX;
+            pendingDeltaY += ev.pageY - originalY;
             originalX = ev.pageX;
             originalY = ev.pageY;
+
+            if (rafId === 0) {
+                rafId = requestAnimationFrame(() => {
+                    rafId = 0;
+                    flushPending();
+                });
+            }
         };
 
         let pointerUp = (ev: PointerEvent) => {
@@ -563,6 +583,14 @@ export class Cropt {
                 this.elements.overlay.removeEventListener("pointermove", pointerMove);
                 this.elements.overlay.removeEventListener("pointerup", pointerUp);
                 this.elements.overlay.removeEventListener("pointerout", pointerUp);
+
+                if (rafId !== 0) {
+                    cancelAnimationFrame(rafId);
+                    rafId = 0;
+                    if (pendingDeltaX !== 0 || pendingDeltaY !== 0) {
+                        flushPending();
+                    }
+                }
 
                 this.#setDragState(false, this.elements.preview);
                 origPinchDistance = 0;
@@ -658,8 +686,13 @@ export class Cropt {
             const isHoriz = direction === "e" || direction === "w";
             const sign = direction === "e" || direction === "s" ? 1 : -1;
 
-            const onMove = (ev: PointerEvent) => {
-                ev.preventDefault();
+            let pendingEv: PointerEvent | null = null;
+            let rafId = 0;
+
+            const flushPending = () => {
+                if (pendingEv === null) return;
+                const ev = pendingEv;
+                pendingEv = null;
 
                 const [pointerDelta, origSize, maxSize] = isHoriz
                     ? [ev.pageX - origX, origW, this.options.viewport.width]
@@ -678,8 +711,27 @@ export class Cropt {
                 this.setZoom(this.#scale);
             };
 
+            const onMove = (ev: PointerEvent) => {
+                ev.preventDefault();
+                pendingEv = ev;
+
+                if (rafId === 0) {
+                    rafId = requestAnimationFrame(() => {
+                        rafId = 0;
+                        flushPending();
+                    });
+                }
+            };
+
             const ac = new AbortController();
-            const onUp = () => ac.abort();
+            const onUp = () => {
+                if (rafId !== 0) {
+                    cancelAnimationFrame(rafId);
+                    rafId = 0;
+                    flushPending();
+                }
+                ac.abort();
+            };
             handle.addEventListener("pointermove", onMove, { signal: ac.signal });
             handle.addEventListener("pointerup", onUp, { signal: ac.signal });
             handle.addEventListener("pointercancel", onUp, { signal: ac.signal });
