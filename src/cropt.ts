@@ -159,6 +159,16 @@ export class Cropt {
     };
     #boundZoom: number | null = null;
     #scale = 1;
+    #vpRelRect = {
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0,
+        width: 0,
+        height: 0,
+        boundWidth: 0,
+        boundHeight: 0,
+    };
     #keyDownHandler: ((ev: KeyboardEvent) => void) | null = null;
     #resizeHandles: HTMLDivElement | null = null;
     #vpWidth = 0;
@@ -338,6 +348,7 @@ export class Cropt {
         if (options.viewport?.width !== undefined) this.#vpWidth = this.options.viewport.width;
         if (options.viewport?.height !== undefined) this.#vpHeight = this.options.viewport.height;
         this.#setOptionsCss();
+        this.#cacheViewportRect();
 
         if (this.options.enableResize && !hadResize) {
             this.#initResizeHandles();
@@ -443,43 +454,64 @@ export class Cropt {
     }
 
     #getVirtualBoundaries(): { x: AxisBounds; y: AxisBounds } {
-        const invScale = 1 / this.#scale;
-        const viewport = this.elements.viewport.getBoundingClientRect();
-        const boundRect = this.elements.boundary.getBoundingClientRect();
-        const imgRect = this.elements.preview.getBoundingClientRect();
-        const halfWidth = viewport.width / 2;
-        const halfHeight = viewport.height / 2;
-        const originMinX = halfWidth * invScale;
-        const originMinY = halfHeight * invScale;
-        const translateMaxX = boundRect.width / 2 - originMinX;
-        const translateMaxY = boundRect.height / 2 - originMinY;
+        const scale = this.#scale;
+        const vp = this.#vpRelRect;
+        const natWidth = this.elements.preview.naturalWidth;
+        const natHeight = this.elements.preview.naturalHeight;
+        const originMinX = vp.width / 2 / scale;
+        const originMinY = vp.height / 2 / scale;
+        const translateMaxX = vp.boundWidth / 2 - originMinX;
+        const translateMaxY = vp.boundHeight / 2 - originMinY;
 
         return {
             x: {
-                translateMin: translateMaxX - (imgRect.width - viewport.width) * invScale,
+                translateMin: translateMaxX - natWidth + 2 * originMinX,
                 translateMax: translateMaxX,
                 originMin: originMinX,
-                originMax: imgRect.width * invScale - originMinX,
+                originMax: natWidth - originMinX,
             },
             y: {
-                translateMin: translateMaxY - (imgRect.height - viewport.height) * invScale,
+                translateMin: translateMaxY - natHeight + 2 * originMinY,
                 translateMax: translateMaxY,
                 originMin: originMinY,
-                originMax: imgRect.height * invScale - originMinY,
+                originMax: natHeight - originMinY,
             },
         };
     }
 
     #assignTransformCoordinates(deltaX: number, deltaY: number) {
-        const imgRect = this.elements.preview.getBoundingClientRect();
-        const vpRect = this.elements.viewport.getBoundingClientRect();
         const transform = Transform.parse(this.elements.preview);
+        const curOrigin = new TransformOrigin(this.elements.preview);
+        const scale = this.#scale;
+        const vp = this.#vpRelRect;
 
-        transform.y += clampDelta(vpRect.top - imgRect.top, deltaY, vpRect.bottom - imgRect.bottom);
-        transform.x += clampDelta(vpRect.left - imgRect.left, deltaX, vpRect.right - imgRect.right);
+        const imgRelTop = curOrigin.y * (1 - scale) + transform.y;
+        const imgRelLeft = curOrigin.x * (1 - scale) + transform.x;
+        const imgRelBottom = imgRelTop + this.elements.preview.naturalHeight * scale;
+        const imgRelRight = imgRelLeft + this.elements.preview.naturalWidth * scale;
 
-        this.#updateCenterPoint(transform);
+        const clampY = clampDelta(vp.top - imgRelTop, deltaY, vp.bottom - imgRelBottom);
+        const clampX = clampDelta(vp.left - imgRelLeft, deltaX, vp.right - imgRelRight);
+        transform.y += clampY;
+        transform.x += clampX;
+
+        this.elements.preview.style.transform = transform.toString();
         this.#updateOverlayDebounced();
+    }
+
+    #cacheViewportRect() {
+        const vpRect = this.elements.viewport.getBoundingClientRect();
+        const boundRect = this.elements.boundary.getBoundingClientRect();
+        this.#vpRelRect = {
+            top: vpRect.top - boundRect.top,
+            left: vpRect.left - boundRect.left,
+            bottom: vpRect.bottom - boundRect.top,
+            right: vpRect.right - boundRect.left,
+            width: vpRect.width,
+            height: vpRect.height,
+            boundWidth: boundRect.width,
+            boundHeight: boundRect.height,
+        };
     }
 
     #initDraggable() {
@@ -641,6 +673,7 @@ export class Cropt {
                     : [this.options.viewport.width, newSize];
 
                 this.#setOptionsCss();
+                this.#cacheViewportRect();
                 this.#setZoomRange();
                 this.setZoom(this.#scale);
             };
@@ -680,21 +713,26 @@ export class Cropt {
     #onZoom() {
         const transform = Transform.parse(this.elements.preview);
         const origin = new TransformOrigin(this.elements.preview);
-
-        let applyCss = () => {
-            this.elements.preview.style.transform = transform.toString();
-            this.elements.preview.style.transformOrigin = origin.toString();
-        };
+        const vp = this.#vpRelRect;
 
         this.#scale = parseFloat(this.elements.zoomer.value);
-        transform.scale = this.#scale;
-        applyCss();
+        const scale = this.#scale;
+        transform.scale = scale;
+
+        // Reposition origin to viewport center while keeping the image visually stationary.
+        const imgLeft = origin.x * (1 - scale) + transform.x;
+        const imgTop = origin.y * (1 - scale) + transform.y;
+        origin.x = (vp.left - imgLeft + vp.width / 2) / scale;
+        origin.y = (vp.top - imgTop + vp.height / 2) / scale;
+        transform.x = imgLeft - origin.x * (1 - scale);
+        transform.y = imgTop - origin.y * (1 - scale);
 
         const { x, y } = this.#getVirtualBoundaries();
         [transform.x, origin.x] = clampAxis(transform.x, origin.x, x);
         [transform.y, origin.y] = clampAxis(transform.y, origin.y, y);
 
-        applyCss();
+        this.elements.preview.style.transform = transform.toString();
+        this.elements.preview.style.transformOrigin = origin.toString();
         this.#updateOverlayDebounced();
     }
 
@@ -738,47 +776,20 @@ export class Cropt {
         }
 
         const preview = this.elements.preview;
-        const transformReset = new Transform(0, 0, 1);
-        preview.style.transform = transformReset.toString();
+        preview.style.transform = new Transform(0, 0, 1).toString();
         preview.style.transformOrigin = new TransformOrigin().toString();
 
+        this.#cacheViewportRect();
         this.#updateZoomLimits();
-        transformReset.scale = this.#scale;
-        preview.style.transform = transformReset.toString();
-        preview.style.transformOrigin = new TransformOrigin().toString();
-
         this.#centerImage();
         this.#updateOverlay();
-    }
-
-    #updateCenterPoint(transform: Transform) {
-        this.elements.preview.style.transform = transform.toString();
-        const vpData = this.elements.viewport.getBoundingClientRect();
-        const data = this.elements.preview.getBoundingClientRect();
-        const curPos = new TransformOrigin(this.elements.preview);
-
-        const top = vpData.top - data.top + vpData.height / 2;
-        const left = vpData.left - data.left + vpData.width / 2;
-        const center = {
-            x: left / this.#scale,
-            y: top / this.#scale,
-        };
-
-        transform.x -= (center.x - curPos.x) * (1 - this.#scale);
-        transform.y -= (center.y - curPos.y) * (1 - this.#scale);
-
-        this.elements.preview.style.transform = transform.toString();
-        this.elements.preview.style.transformOrigin = center.x + "px " + center.y + "px";
     }
 
     #setZoomRange() {
         const img = this.elements.preview;
         if (img.naturalWidth === 0) return;
-        const vpData = this.elements.viewport.getBoundingClientRect();
-        const minZoom = Math.max(
-            vpData.width / img.naturalWidth,
-            vpData.height / img.naturalHeight,
-        );
+        const vp = this.#vpRelRect;
+        const minZoom = Math.max(vp.width / img.naturalWidth, vp.height / img.naturalHeight);
         let maxZoom = 0.85;
         if (minZoom >= maxZoom) maxZoom += minZoom;
         // min zoom cannot be rounded, or large images won't match the viewport size when zoomed out
@@ -792,23 +803,23 @@ export class Cropt {
         let zoom = this.#boundZoom;
 
         if (zoom === null) {
-            const bData = this.elements.boundary.getBoundingClientRect();
-            zoom = Math.max(bData.width / img.naturalWidth, bData.height / img.naturalHeight);
+            const vp = this.#vpRelRect;
+            zoom = Math.max(vp.boundWidth / img.naturalWidth, vp.boundHeight / img.naturalHeight);
         }
 
         this.setZoom(zoom);
     }
 
     #centerImage() {
-        const imgDim = this.elements.preview.getBoundingClientRect();
-        const vpDim = this.elements.viewport.getBoundingClientRect();
-        const boundDim = this.elements.boundary.getBoundingClientRect();
-
-        const vpLeft = vpDim.left - boundDim.left;
-        const vpTop = vpDim.top - boundDim.top;
-        const x = vpLeft - (imgDim.width - vpDim.width) / 2;
-        const y = vpTop - (imgDim.height - vpDim.height) / 2;
-
-        this.#updateCenterPoint(new Transform(x, y, this.#scale));
+        const vp = this.#vpRelRect;
+        const preview = this.elements.preview;
+        const origin = new TransformOrigin();
+        origin.x = preview.naturalWidth / 2;
+        origin.y = preview.naturalHeight / 2;
+        const transform = new Transform(0, 0, this.#scale);
+        transform.x = vp.left + vp.width / 2 - origin.x;
+        transform.y = vp.top + vp.height / 2 - origin.y;
+        preview.style.transform = transform.toString();
+        preview.style.transformOrigin = origin.toString();
     }
 }

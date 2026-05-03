@@ -7,6 +7,7 @@
     max-height: none;
     max-width: none;
     pointer-events: none; /* prevent image context menu on Android */
+    will-change: transform;
 }
 
 .cropt-container .cr-image,
