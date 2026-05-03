@@ -161,8 +161,8 @@ export class Cropt {
     #scale = 1;
     #keyDownHandler: ((ev: KeyboardEvent) => void) | null = null;
     #resizeHandles: HTMLDivElement | null = null;
-    #maxVpWidth = 0;
-    #maxVpHeight = 0;
+    #vpWidth = 0;
+    #vpHeight = 0;
     #updateOverlayDebounced = debounce(() => {
         this.#updateOverlay();
     }, 200);
@@ -174,6 +174,8 @@ export class Cropt {
 
         const viewport = { ...this.options.viewport, ...options.viewport };
         this.options = { ...this.options, ...(options as CroptOptions), viewport };
+        this.#vpWidth = this.options.viewport.width;
+        this.#vpHeight = this.options.viewport.height;
         this.element = element;
         this.element.classList.add("cropt-container");
 
@@ -212,25 +214,26 @@ export class Cropt {
      * Bind an image from an src string, and optionally restore saved state.
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
-    bind(src: string, state: number | CroptState | null = null) {
+    bind(src: string, state: CroptState | number | null = null) {
         if (!src) {
             throw new Error("src cannot be empty");
         }
 
         // continue accepting a number as the second parameter for backwards compatibility
-        this.#boundZoom = typeof state === "number" ? state : (state?.zoom ?? null);
+        const stateIsZoom = typeof state === "number";
+        this.#boundZoom = stateIsZoom ? state : (state?.zoom ?? null);
         this.elements.boundary.classList.add("cr-loading");
 
         return loadImage(src).then((img) => {
             this.elements.boundary.classList.remove("cr-loading");
             this.#replaceImage(img);
-            if (state !== null && typeof state !== "number") {
-                this.options.viewport.width = state.width;
-                this.options.viewport.height = state.height;
+            if (state !== null && !stateIsZoom) {
+                this.#vpWidth = state.width;
+                this.#vpHeight = state.height;
                 this.#setOptionsCss();
             }
             this.#updatePropertiesFromImage();
-            if (state !== null && typeof state !== "number") {
+            if (state !== null && !stateIsZoom) {
                 const points = this.#getPoints();
                 this.#assignTransformCoordinates(
                     (points.left - state.x) * this.#scale,
@@ -238,6 +241,20 @@ export class Cropt {
                 );
             }
         });
+    }
+
+    /**
+     * Returns the current crop state, which can be passed to bind() to restore it later.
+     */
+    getState(): CroptState {
+        const points = this.#getPoints();
+        return {
+            x: points.left,
+            y: points.top,
+            zoom: this.#scale,
+            width: this.#vpWidth,
+            height: this.#vpHeight,
+        };
     }
 
     #getPoints() {
@@ -312,12 +329,14 @@ export class Cropt {
     }
 
     setOptions(options: RecursivePartial<CroptOptions>) {
-        const curWidth = this.options.viewport.width;
-        const curHeight = this.options.viewport.height;
+        const curWidth = this.#vpWidth;
+        const curHeight = this.#vpHeight;
         const hadResize = this.options.enableResize;
 
         const viewport = { ...this.options.viewport, ...options.viewport };
         this.options = { ...this.options, ...(options as CroptOptions), viewport };
+        if (options.viewport?.width !== undefined) this.#vpWidth = this.options.viewport.width;
+        if (options.viewport?.height !== undefined) this.#vpHeight = this.options.viewport.height;
         this.#setOptionsCss();
 
         if (this.options.enableResize && !hadResize) {
@@ -326,14 +345,7 @@ export class Cropt {
             this.#removeResizeHandles();
         }
 
-        if (
-            this.options.viewport.width !== curWidth ||
-            this.options.viewport.height !== curHeight
-        ) {
-            if (this.#resizeHandles) {
-                this.#maxVpWidth = this.options.viewport.width;
-                this.#maxVpHeight = this.options.viewport.height;
-            }
+        if (this.#vpWidth !== curWidth || this.#vpHeight !== curHeight) {
             this.#updateZoomLimits();
         }
     }
@@ -359,11 +371,11 @@ export class Cropt {
         this.elements.zoomer.className = this.options.zoomerInputClass;
         const viewport = this.elements.viewport;
         viewport.style.borderRadius = this.options.viewport.borderRadius;
-        viewport.style.width = this.options.viewport.width + "px";
-        viewport.style.height = this.options.viewport.height + "px";
+        viewport.style.width = this.#vpWidth + "px";
+        viewport.style.height = this.#vpHeight + "px";
         if (this.#resizeHandles) {
-            this.#resizeHandles.style.width = this.options.viewport.width + "px";
-            this.#resizeHandles.style.height = this.options.viewport.height + "px";
+            this.#resizeHandles.style.width = this.#vpWidth + "px";
+            this.#resizeHandles.style.height = this.#vpHeight + "px";
         }
     }
 
@@ -575,15 +587,10 @@ export class Cropt {
     #initResizeHandles() {
         if (this.#resizeHandles) return;
 
-        if (this.#maxVpWidth === 0) {
-            this.#maxVpWidth = this.options.viewport.width;
-            this.#maxVpHeight = this.options.viewport.height;
-        }
-
         const container = document.createElement("div");
         container.classList.add("cr-resize-handles");
-        container.style.width = this.options.viewport.width + "px";
-        container.style.height = this.options.viewport.height + "px";
+        container.style.width = this.#vpWidth + "px";
+        container.style.height = this.#vpHeight + "px";
 
         for (const dir of ["n", "e", "s", "w"]) {
             const handle = document.createElement("div");
@@ -610,8 +617,8 @@ export class Cropt {
 
             const origX = ev.pageX;
             const origY = ev.pageY;
-            const origW = this.options.viewport.width;
-            const origH = this.options.viewport.height;
+            const origW = this.#vpWidth;
+            const origH = this.#vpHeight;
             const minSize = 20;
 
             handle.setPointerCapture(ev.pointerId);
@@ -623,15 +630,15 @@ export class Cropt {
                 ev.preventDefault();
 
                 const [pointerDelta, origSize, maxSize] = isHoriz
-                    ? [ev.pageX - origX, origW, this.#maxVpWidth]
-                    : [ev.pageY - origY, origH, this.#maxVpHeight];
+                    ? [ev.pageX - origX, origW, this.options.viewport.width]
+                    : [ev.pageY - origY, origH, this.options.viewport.height];
                 const newSize = Math.round(
                     Math.max(minSize, Math.min(maxSize, origSize + 2 * sign * pointerDelta)),
                 );
 
-                [this.options.viewport.width, this.options.viewport.height] = isHoriz
-                    ? [newSize, this.#maxVpHeight]
-                    : [this.#maxVpWidth, newSize];
+                [this.#vpWidth, this.#vpHeight] = isHoriz
+                    ? [newSize, this.options.viewport.height]
+                    : [this.options.viewport.width, newSize];
 
                 this.#setOptionsCss();
                 this.#setZoomRange();
@@ -689,20 +696,6 @@ export class Cropt {
 
         applyCss();
         this.#updateOverlayDebounced();
-    }
-
-    /**
-     * Returns the current crop state, which can be passed to bind() to restore it later.
-     */
-    getState(): CroptState {
-        const points = this.#getPoints();
-        return {
-            x: points.left,
-            y: points.top,
-            zoom: this.#scale,
-            width: this.options.viewport.width,
-            height: this.options.viewport.height,
-        };
     }
 
     #replaceImage(img: HTMLImageElement) {
