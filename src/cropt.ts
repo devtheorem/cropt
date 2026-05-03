@@ -647,10 +647,6 @@ export class Cropt {
     }
 
     #initializeZoom() {
-        let change = () => {
-            this.#onZoom();
-        };
-
         let scroll = (ev: WheelEvent) => {
             const optionVal = this.options.mouseWheelZoom;
             let delta = 0;
@@ -658,14 +654,19 @@ export class Cropt {
             if (optionVal === "off" || (optionVal === "ctrl" && !ev.ctrlKey)) {
                 return;
             } else if (ev.deltaY) {
-                delta = (ev.deltaY * -1) / 2000;
+                let rawDelta = ev.deltaY;
+                if (ev.deltaMode === 1) rawDelta *= 40;
+                else if (ev.deltaMode === 2) rawDelta *= 800;
+                // Pinch gestures set ctrlKey with small per-frame deltas; ctrl+scroll produces large ones
+                const divisor = ev.ctrlKey && Math.abs(rawDelta) < 40 ? 100 : 2000;
+                delta = (rawDelta * -1) / divisor;
             }
 
             ev.preventDefault();
             this.setZoom(this.#scale + delta * this.#scale);
         };
 
-        this.elements.zoomer.addEventListener("input", change);
+        this.elements.zoomer.addEventListener("input", () => this.#onZoom());
         this.elements.boundary.addEventListener("wheel", scroll);
     }
 
