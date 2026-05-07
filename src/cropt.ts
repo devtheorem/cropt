@@ -40,14 +40,6 @@ class TransformOrigin {
     }
 }
 
-function debounce<T extends Function>(func: T, wait: number) {
-    let timer = 0;
-    return (...args: any) => {
-        clearTimeout(timer);
-        timer = setTimeout(() => func(...args), wait);
-    };
-}
-
 function setZoomerVal(value: number, zoomer: HTMLInputElement) {
     const zMin = parseFloat(zoomer.min);
     const zMax = parseFloat(zoomer.max);
@@ -173,10 +165,6 @@ export class Cropt {
     #resizeHandles: HTMLDivElement | null = null;
     #vpWidth = 0;
     #vpHeight = 0;
-    #updateOverlayDebounced = debounce(() => {
-        this.#updateOverlay();
-    }, 200);
-
     constructor(element: HTMLElement, options: RecursivePartial<CroptOptions>) {
         if (element.classList.contains("cropt-container")) {
             throw new Error("Cropt is already initialized on this element");
@@ -499,7 +487,6 @@ export class Cropt {
         transform.x += clampX;
 
         this.elements.preview.style.transform = transform.toString();
-        this.#updateOverlayDebounced();
     }
 
     #cacheViewportRect() {
@@ -521,7 +508,9 @@ export class Cropt {
         let originalX = 0;
         let originalY = 0;
         let pEventCache: PointerEvent[] = [];
-        let origPinchDistance = 0;
+        let lastPinchDist = 0;
+        let lastMidX = 0;
+        let lastMidY = 0;
         let pendingDeltaX = 0;
         let pendingDeltaY = 0;
         let rafId = 0;
@@ -545,17 +534,19 @@ export class Cropt {
             }
 
             if (pEventCache.length === 2) {
-                let touch1 = pEventCache[0];
-                let touch2 = pEventCache[1];
-                let dist = Math.hypot(touch1.pageX - touch2.pageX, touch1.pageY - touch2.pageY);
-
-                if (origPinchDistance === 0) {
-                    origPinchDistance = dist / this.#scale;
+                const [p0, p1] = pEventCache;
+                const dist = Math.hypot(p0.clientX - p1.clientX, p0.clientY - p1.clientY);
+                const midX = (p0.clientX + p1.clientX) / 2;
+                const midY = (p0.clientY + p1.clientY) / 2;
+                if (lastPinchDist > 0) {
+                    this.setZoom(this.#scale * (dist / lastPinchDist));
+                    this.#assignTransformCoordinates(midX - lastMidX, midY - lastMidY);
                 }
-
-                this.setZoom(dist / origPinchDistance);
+                lastPinchDist = dist;
+                lastMidX = midX;
+                lastMidY = midY;
                 return;
-            } else if (origPinchDistance !== 0) {
+            } else if (lastPinchDist !== 0) {
                 return; // ignore single pointer movement after pinch zoom
             }
 
@@ -579,10 +570,20 @@ export class Cropt {
                 pEventCache.splice(cacheIndex, 1);
             }
 
+            // First finger lifted during a pinch: reset pinch state and anchor the
+            // remaining finger so pointermove resumes drag from its current position
+            if (pEventCache.length < 2 && lastPinchDist !== 0) {
+                lastPinchDist = 0;
+                if (pEventCache.length === 1) {
+                    originalX = pEventCache[0].pageX;
+                    originalY = pEventCache[0].pageY;
+                }
+            }
+
             if (pEventCache.length === 0) {
                 this.elements.overlay.removeEventListener("pointermove", pointerMove);
                 this.elements.overlay.removeEventListener("pointerup", pointerUp);
-                this.elements.overlay.removeEventListener("pointerout", pointerUp);
+                this.elements.overlay.removeEventListener("pointercancel", pointerUp);
 
                 if (rafId !== 0) {
                     cancelAnimationFrame(rafId);
@@ -593,13 +594,13 @@ export class Cropt {
                 }
 
                 this.#setDragState(false, this.elements.preview);
-                origPinchDistance = 0;
+                lastPinchDist = 0;
             }
         };
 
         let pointerDown = (ev: PointerEvent) => {
-            if (ev.button) {
-                return; // non-left mouse button press
+            if (ev.button || pEventCache.length >= 2) {
+                return; // non-left mouse button press or already tracking 2 touch points
             }
 
             // Don't call preventDefault() in pointerdown, since this causes Firefox to only
@@ -610,7 +611,12 @@ export class Cropt {
             this.elements.overlay.setPointerCapture(ev.pointerId);
 
             if (pEventCache.length > 1) {
-                return; // ignore additional pointers
+                // second touch point: initialize pinch distance and midpoint, skip drag start
+                const p0 = pEventCache[0];
+                lastPinchDist = Math.hypot(p0.pageX - ev.pageX, p0.pageY - ev.pageY);
+                lastMidX = (p0.clientX + ev.clientX) / 2;
+                lastMidY = (p0.clientY + ev.clientY) / 2;
+                return;
             }
 
             originalX = ev.pageX;
@@ -619,7 +625,7 @@ export class Cropt {
 
             this.elements.overlay.addEventListener("pointermove", pointerMove);
             this.elements.overlay.addEventListener("pointerup", pointerUp);
-            this.elements.overlay.addEventListener("pointerout", pointerUp);
+            this.elements.overlay.addEventListener("pointercancel", pointerUp);
         };
 
         let keyDown = (ev: KeyboardEvent) => {
@@ -785,7 +791,6 @@ export class Cropt {
 
         this.elements.preview.style.transform = transform.toString();
         this.elements.preview.style.transformOrigin = origin.toString();
-        this.#updateOverlayDebounced();
     }
 
     #replaceImage(img: HTMLImageElement) {
@@ -811,17 +816,6 @@ export class Cropt {
         return this.elements.preview.offsetParent !== null;
     }
 
-    #updateOverlay() {
-        const boundRect = this.elements.boundary.getBoundingClientRect();
-        const imgData = this.elements.preview.getBoundingClientRect();
-        const overlay = this.elements.overlay;
-
-        overlay.style.width = imgData.width + "px";
-        overlay.style.height = imgData.height + "px";
-        overlay.style.top = `${imgData.top - boundRect.top}px`;
-        overlay.style.left = `${imgData.left - boundRect.left}px`;
-    }
-
     #updatePropertiesFromImage() {
         if (!this.#isVisible()) {
             return;
@@ -834,7 +828,6 @@ export class Cropt {
         this.#cacheViewportRect();
         this.#updateZoomLimits();
         this.#centerImage();
-        this.#updateOverlay();
     }
 
     #setZoomRange() {
