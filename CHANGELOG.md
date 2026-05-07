@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.2.0] - 2026-05-07
+### Added
+- Support for dragging at the same time as pinch zooming.
+- CSS progress spinner while loading a bound image.
+
+### Changed
+- `enableResize` now allows resizing both width and height simultaneously, with a minimum size so the viewport can always be dragged.
+- Improved zoom speed on touchpads.
+- Optimized image dragging and centering for smoother rendering.
+
+### Fixed
+- Laggy/jumpy pinch zooming in Firefox (caused by https://bugzil.la/1729465).
+- Broken image icon appearing before an image was bound ([#7](https://github.com/devtheorem/cropt/issues/7)).
+
+
 ## [1.1.1] - 2026-04-30
 ### Added
 - `enableResize` option: when set to `true`, resize handles are shown on the viewport edges allowing the user to adjust its size ([#9](https://github.com/devtheorem/cropt/issues/9)).
@@ -100,6 +115,7 @@ This is the initial pre-release after forking from [Foliotek/Croppie](https://gi
 - `showZoomer` option (hide via CSS instead if desired).
 
 [#6]: https://github.com/devtheorem/cropt/issues/6
+[1.2.0]: https://github.com/devtheorem/cropt/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/devtheorem/cropt/compare/v1.0.2...v1.1.1
 [1.0.2]: https://github.com/devtheorem/cropt/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/devtheorem/cropt/compare/v1.0.0...v1.0.1
