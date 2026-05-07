@@ -7,6 +7,7 @@
     max-height: none;
     max-width: none;
     pointer-events: none; /* prevent image context menu on Android */
+    will-change: transform;
 }
 
 .cropt-container .cr-image,
@@ -48,6 +49,7 @@
 .cropt-container .cr-overlay {
     z-index: 1;
     position: absolute;
+    inset: 0;
     cursor: move;
     touch-action: none;
 }
@@ -111,4 +113,38 @@
 .cropt-container .cr-handle-w {
     left: -6px;
     cursor: w-resize;
+}
+
+/* avoid broken image icon before image is bound */
+.cropt-container .cr-image:not([src]) {
+    display: none;
+}
+
+/* show progress spinner while bound image loads */
+.cropt-container .cr-boundary.cr-loading::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(0, 0, 0, 0.15);
+    border-top-color: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    animation: cr-spin 0.7s linear infinite;
+    z-index: 2;
+    pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .cropt-container .cr-boundary.cr-loading::after {
+        border-color: rgba(255, 255, 255, 0.15);
+        border-top-color: rgba(255, 255, 255, 0.8);
+    }
+}
+
+@keyframes cr-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
