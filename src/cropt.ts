@@ -685,7 +685,7 @@ export class Cropt {
             const origY = ev.pageY;
             const origW = this.#vpWidth;
             const origH = this.#vpHeight;
-            const minSize = 20;
+            const minSize = 60;
 
             handle.setPointerCapture(ev.pointerId);
 
@@ -707,9 +707,11 @@ export class Cropt {
                     Math.max(minSize, Math.min(maxSize, origSize + 2 * sign * pointerDelta)),
                 );
 
-                [this.#vpWidth, this.#vpHeight] = isHoriz
-                    ? [newSize, this.options.viewport.height]
-                    : [this.options.viewport.width, newSize];
+                if (isHoriz) {
+                    this.#vpWidth = newSize;
+                } else {
+                    this.#vpHeight = newSize;
+                }
 
                 this.#setOptionsCss();
                 this.#cacheViewportRect();
