@@ -530,7 +530,10 @@ export class Cropt {
                 return; // non-left mouse button press
             }
 
-            ev.preventDefault();
+            // Don't call preventDefault() in pointerdown, since this causes Firefox to only
+            // emit pointermove events for subsequent pointers when the first one isn't moving,
+            // which breaks pinch-zooming (https://bugzil.la/1729465). touch-action:none and
+            // user-select:none on the overlay already prevent scrolling and text selection.
             pEventCache.push(ev);
             this.elements.overlay.setPointerCapture(ev.pointerId);
 
