@@ -1,27 +1,73 @@
 # Cropt
 
-A delightful JS image cropper with zero dependencies.
+A delightful image cropper optimized for both mobile and desktop use.
 
-Originally based on [Foliotek/Croppie](https://github.com/Foliotek/Croppie),
-but rewritten as a modern ES module with a simpler API, better image scaling, and native TypeScript support.
+* Includes TypeScript definitions.
+* Published as a native ES module.
+* Zero dependencies.
+* Originally based on [Croppie](https://github.com/Foliotek/Croppie), but rewritten in TypeScript with a simpler API and lots of bug fixes and polish.
 
 ## Installation
 
-```
+```sh
 npm install cropt
 ```
 
 ## Usage
 
 1. Include the `src/cropt.css` stylesheet on your page.
-2. Add a `div` element to your HTML to hold the Cropt instance.
-3. Import Cropt and bind it to an image:
+2. Add a `<div>` element with a unique ID to your HTML to hold the Cropt instance.
+3. Import Cropt and instantiate it with a reference to the `<div>` element and an object for options.
+4. Bind to an image URL.
+
+```html
+<div id="cropper"></div>
+```
 
 ```javascript
 import { Cropt } from "cropt";
+import "cropt/src/cropt.css";
 
-let c = new Cropt(document.getElementById('demo'), options);
-c.bind("path/to/image.jpg");
+let croptEl = document.getElementById('cropper');
+let cropt = new Cropt(croptEl, {
+    viewport: { width: 250, height: 250 },
+});
+cropt.bind("path/to/image.jpg");
+```
+
+### Binding from a file input
+
+To let users pick an image from their device, bind from a file `<input>` element's `change` event using `URL.createObjectURL()`:
+
+```html
+<input type="file" id="fileInput" accept="image/*" />
+```
+
+```javascript
+document.getElementById('fileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    cropt.bind(url).then(() => URL.revokeObjectURL(url));
+});
+```
+
+The object URL can be revoked after binding because Cropt has already loaded the image data into the DOM at that point.
+
+### Uploading the cropped image
+
+Use `toBlob()` to get the cropped image as a `Blob`, then send it to your server with `fetch`:
+
+```javascript
+async function upload() {
+    const blob = await cropt.toBlob(500, "image/webp"); // longest side scaled to 500px
+
+    const body = new FormData();
+    body.append('image', blob, 'crop.webp');
+
+    await fetch('/upload', { method: 'POST', body });
+}
 ```
 
 ### Sizing
@@ -74,7 +120,7 @@ The optional second argument can be:
 ### `getState(): CroptState`
 
 Returns the current crop state as a `CroptState` object with fields `x`, `y`, `zoom`, `width`, and `height`.
-This can be stored and later passed to `bind()` to restore the crop position, zoom level, and viewport size.
+This can be stored alongside the original image and later passed to `bind()` to restore the crop position, zoom level, and viewport size.
 
 ```javascript
 // Save state when the user is done cropping
@@ -90,7 +136,7 @@ Deconstructs a Cropt instance and removes the elements from the DOM.
 
 ### `refresh(): void`
 
-Recalculate points for the image. Necessary if the instance was initially bound to a hidden element.
+Recalculate points for the image. Necessary if the instance was bound while hidden, or if it has been hidden and re-shown.
 
 ### `toCanvas(size: number | null = null): Promise<HTMLCanvasElement>`
 
@@ -99,10 +145,10 @@ If `size` is specified, the cropped image will be scaled with its longest side s
 
 ### `toBlob(size: number | null = null, type = "image/webp", quality = 1): Promise<Blob>`
 
-Returns a Promise resolving to a `Blob` object for the cropped image.
+Returns a `Promise` resolving to a `Blob` object for the cropped image.
 If `size` is specified, the cropped image will be scaled with its longest side set to this value.
 The `type` and `quality` parameters are passed directly to the corresponding
-[HTMLCanvasElement.toBlob()](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob) method parameters.
+[`HTMLCanvasElement.toBlob()`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLCanvasElement/toBlob) method parameters.
 
 ### `setOptions(options: CroptOptions): void`
 
@@ -110,7 +156,7 @@ Allows options to be dynamically changed on an existing Cropt instance.
 
 ### `setZoom(value: number): void`
 
-Set the zoom of a Cropt instance. The value must be between 0 and 1, and is restricted to the min/max set by Cropt.
+Set the zoom of a Cropt instance. The value must be between 0 and 1, and is clamped to the min/max zoom calculated for the current image.
 
 ## Visibility and binding
 
@@ -127,9 +173,7 @@ myModal.addEventListener('shown.bs.modal', () => {
 });
 ```
 
-If you have issues getting the correct result, and your Cropt instance is shown inside a modal,
-try taking it out of the modal and see if the issue persists.
-If not, make sure that your bind method is called after the modal finishes opening.
+If your Cropt instance is inside a modal, make sure `bind()` is called after the modal finishes opening.
 
 If a Cropt instance needs to be hidden and then re-shown, call the `refresh()` method to recalculate properties for the displayed image.
 
