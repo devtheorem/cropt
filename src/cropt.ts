@@ -835,9 +835,23 @@ export class Cropt {
     #setZoomRange() {
         const img = this.elements.preview;
         if (img.naturalWidth === 0) return;
-        const vp = this.#vpRelRect;
-        const minZoom = Math.max(vp.width / img.naturalWidth, vp.height / img.naturalHeight);
-        let maxZoom = 0.85;
+        // Cover the current viewport, but never zoom out so far that the
+        // image would be smaller than fitting within the options viewport.
+        const minZoom = Math.max(
+            this.#vpWidth / img.naturalWidth,
+            this.#vpHeight / img.naturalHeight,
+            Math.min(
+                this.options.viewport.width / img.naturalWidth,
+                this.options.viewport.height / img.naturalHeight,
+            ),
+        );
+        // Scale maxZoom down with the viewport so a resized viewport can't
+        // crop a smaller image area than the full-size viewport at max zoom.
+        const vpScale = Math.min(
+            this.#vpWidth / this.options.viewport.width,
+            this.#vpHeight / this.options.viewport.height,
+        );
+        let maxZoom = 0.85 * vpScale;
         if (minZoom >= maxZoom) maxZoom += minZoom;
         // min zoom cannot be rounded, or large images won't match the viewport size when zoomed out
         this.elements.zoomer.min = minZoom.toString();
