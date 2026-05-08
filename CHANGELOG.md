@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1] - 2026-05-08
+### Changed
+- Improved min/max zoom limits when the viewport is resized.
+- Expanded readme with examples for binding from a file input and uploading the cropped image.
+
+
 ## [1.2.0] - 2026-05-07
 ### Added
 - Support for dragging at the same time as pinch zooming.
@@ -115,6 +121,7 @@ This is the initial pre-release after forking from [Foliotek/Croppie](https://gi
 - `showZoomer` option (hide via CSS instead if desired).
 
 [#6]: https://github.com/devtheorem/cropt/issues/6
+[1.2.1]: https://github.com/devtheorem/cropt/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/devtheorem/cropt/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/devtheorem/cropt/compare/v1.0.2...v1.1.1
 [1.0.2]: https://github.com/devtheorem/cropt/compare/v1.0.1...v1.0.2
