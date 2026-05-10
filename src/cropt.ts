@@ -44,7 +44,7 @@ function setZoomerVal(value: number, zoomer: HTMLInputElement) {
     const zMin = parseFloat(zoomer.min);
     const zMax = parseFloat(zoomer.max);
 
-    zoomer.value = Math.max(zMin, Math.min(zMax, value)).toString();
+    zoomer.value = clamp(value, zMin, zMax).toString();
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
@@ -77,8 +77,8 @@ const arrowKeyDeltas: Record<string, [number, number]> = {
     ArrowDown: [0, -2],
 };
 
-function clampDelta(innerDiff: number, delta: number, outerDiff: number) {
-    return Math.max(Math.min(innerDiff, delta), outerDiff);
+function clamp(value: number, min: number, max: number) {
+    return Math.max(min, Math.min(max, value));
 }
 
 interface AxisBounds {
@@ -483,8 +483,8 @@ export class Cropt {
         const imgRelBottom = imgRelTop + this.elements.preview.naturalHeight * scale;
         const imgRelRight = imgRelLeft + this.elements.preview.naturalWidth * scale;
 
-        const clampY = clampDelta(vp.top - imgRelTop, deltaY, vp.bottom - imgRelBottom);
-        const clampX = clampDelta(vp.left - imgRelLeft, deltaX, vp.right - imgRelRight);
+        const clampY = clamp(deltaY, vp.bottom - imgRelBottom, vp.top - imgRelTop);
+        const clampX = clamp(deltaX, vp.right - imgRelRight, vp.left - imgRelLeft);
         transform.y += clampY;
         transform.x += clampX;
 
@@ -706,7 +706,7 @@ export class Cropt {
                     ? [ev.pageX - origX, origW, this.options.viewport.width]
                     : [ev.pageY - origY, origH, this.options.viewport.height];
                 const newSize = Math.round(
-                    Math.max(minSize, Math.min(maxSize, origSize + 2 * sign * pointerDelta)),
+                    clamp(origSize + 2 * sign * pointerDelta, minSize, maxSize),
                 );
 
                 if (isHoriz) {
