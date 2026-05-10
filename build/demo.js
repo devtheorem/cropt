@@ -1,13 +1,9 @@
 import { Cropt } from "./cropt.js";
 function popupResult(src, borderRadius) {
-    const resultModal = new bootstrap.Modal(getElById("resultModal"));
-    const imgStyle = `max-width: min(100%, 320px); max-height: 320px; border-radius: ${borderRadius};`;
-    const bodyEl = document.querySelector("#resultModal .modal-body");
-    if (bodyEl === null) {
-        throw new Error("bodyEl is null");
-    }
-    bodyEl.innerHTML = `<img src="${src}" style="${imgStyle}" />`;
-    resultModal.show();
+    const imgEl = getElById("result-img");
+    imgEl.src = src;
+    imgEl.style.cssText = `max-width: min(100%, 320px); max-height: 320px; border-radius: ${borderRadius};`;
+    new bootstrap.Modal(getElById("resultModal")).show();
 }
 let photos = [
     "girl-piano.jpg",
@@ -62,9 +58,9 @@ cropt.bind("${photoSrc}", savedState);
 resultBtn.addEventListener("click", async () => {
     savedState = cropt.getState(); // for restoring position/size later
     const canvas = await cropt.toCanvas(${outputSize});
-    let url = canvas.toDataURL();
-    // Data URL can be set as the src of an image element.
-    // Display in modal dialog.
+    const imgEl = document.getElementById("result-img");
+    imgEl.src = canvas.toDataURL();
+    new bootstrap.Modal(document.getElementById("resultModal")).show();
 });`;
 }
 function getElById(elementId) {

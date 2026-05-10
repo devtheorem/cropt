@@ -39,7 +39,7 @@ class TransformOrigin {
 function setZoomerVal(value, zoomer) {
     const zMin = parseFloat(zoomer.min);
     const zMax = parseFloat(zoomer.max);
-    zoomer.value = Math.max(zMin, Math.min(zMax, value)).toString();
+    zoomer.value = clamp(value, zMin, zMax).toString();
 }
 function loadImage(src) {
     const img = new Image();
@@ -67,8 +67,8 @@ const arrowKeyDeltas = {
     ArrowRight: [-2, 0],
     ArrowDown: [0, -2],
 };
-function clampDelta(innerDiff, delta, outerDiff) {
-    return Math.max(Math.min(innerDiff, delta), outerDiff);
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
 }
 function clampAxis(val, curOrigin, bounds) {
     if (val >= bounds.translateMax)
@@ -147,7 +147,7 @@ export class Cropt {
      * Bind an image from an src string, and optionally restore saved state.
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
-    bind(src, state = null) {
+    async bind(src, state = null) {
         if (!src) {
             throw new Error("src cannot be empty");
         }
@@ -155,20 +155,23 @@ export class Cropt {
         const stateIsZoom = typeof state === "number";
         this.#boundZoom = stateIsZoom ? state : (state?.zoom ?? null);
         this.elements.boundary.classList.add("cr-loading");
-        return loadImage(src).then((img) => {
-            this.elements.boundary.classList.remove("cr-loading");
-            this.#replaceImage(img);
-            if (state !== null && !stateIsZoom) {
-                this.#vpWidth = state.width;
-                this.#vpHeight = state.height;
-                this.#setOptionsCss();
-            }
-            this.#updatePropertiesFromImage();
-            if (state !== null && !stateIsZoom) {
-                const points = this.#getPoints();
-                this.#assignTransformCoordinates((points.left - state.x) * this.#scale, (points.top - state.y) * this.#scale);
-            }
-        });
+        const img = await loadImage(src);
+        this.elements.boundary.classList.remove("cr-loading");
+        this.#replaceImage(img);
+        if (state !== null && !stateIsZoom) {
+            this.#vpWidth = state.width;
+            this.#vpHeight = state.height;
+        }
+        else {
+            this.#vpWidth = this.options.viewport.width;
+            this.#vpHeight = this.options.viewport.height;
+        }
+        this.#setOptionsCss();
+        this.#updatePropertiesFromImage();
+        if (state !== null && !stateIsZoom) {
+            const points = this.#getPoints();
+            this.#assignTransformCoordinates((points.left - state.x) * this.#scale, (points.top - state.y) * this.#scale);
+        }
     }
     /**
      * Returns the current crop state, which can be passed to bind() to restore it later.
@@ -326,8 +329,8 @@ export class Cropt {
         };
         while (cur.width * 0.5 > canvas.width) {
             // step down size by one half for smooth scaling
-            let curWidth = cur.width;
-            let curHeight = cur.height;
+            const curWidth = cur.width;
+            const curHeight = cur.height;
             cur = {
                 width: Math.floor(cur.width * 0.5),
                 height: Math.floor(cur.height * 0.5),
@@ -377,8 +380,8 @@ export class Cropt {
         const imgRelLeft = curOrigin.x * (1 - scale) + transform.x;
         const imgRelBottom = imgRelTop + this.elements.preview.naturalHeight * scale;
         const imgRelRight = imgRelLeft + this.elements.preview.naturalWidth * scale;
-        const clampY = clampDelta(vp.top - imgRelTop, deltaY, vp.bottom - imgRelBottom);
-        const clampX = clampDelta(vp.left - imgRelLeft, deltaX, vp.right - imgRelRight);
+        const clampY = clamp(deltaY, vp.bottom - imgRelBottom, vp.top - imgRelTop);
+        const clampX = clamp(deltaX, vp.right - imgRelRight, vp.left - imgRelLeft);
         transform.y += clampY;
         transform.x += clampX;
         this.elements.preview.style.transform = transform.toString();
@@ -515,7 +518,7 @@ export class Cropt {
                 let stepVal = ev.key === "ArrowUp" ? 0.01 : -0.01;
                 this.setZoom(zoomVal + stepVal);
             }
-            else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.key)) {
+            else if (ev.key in arrowKeyDeltas) {
                 ev.preventDefault();
                 let [deltaX, deltaY] = arrowKeyDeltas[ev.key];
                 this.#assignTransformCoordinates(deltaX, deltaY);
@@ -571,7 +574,7 @@ export class Cropt {
                 const [pointerDelta, origSize, maxSize] = isHoriz
                     ? [ev.pageX - origX, origW, this.options.viewport.width]
                     : [ev.pageY - origY, origH, this.options.viewport.height];
-                const newSize = Math.round(Math.max(minSize, Math.min(maxSize, origSize + 2 * sign * pointerDelta)));
+                const newSize = Math.round(clamp(origSize + 2 * sign * pointerDelta, minSize, maxSize));
                 if (isHoriz) {
                     this.#vpWidth = newSize;
                 }
@@ -687,9 +690,9 @@ export class Cropt {
         // Cover the current viewport, but never zoom out so far that the
         // image would be smaller than fitting within the options viewport.
         const minZoom = Math.max(this.#vpWidth / img.naturalWidth, this.#vpHeight / img.naturalHeight, Math.min(this.options.viewport.width / img.naturalWidth, this.options.viewport.height / img.naturalHeight));
-        // Scale maxZoom down with the viewport so a resized viewport can't
+        // Scale maxZoom down with the viewport so resizing both dimensions won't
         // crop a smaller image area than the full-size viewport at max zoom.
-        const vpScale = Math.min(this.#vpWidth / this.options.viewport.width, this.#vpHeight / this.options.viewport.height);
+        const vpScale = Math.max(this.#vpWidth / this.options.viewport.width, this.#vpHeight / this.options.viewport.height);
         let maxZoom = 0.85 * vpScale;
         if (minZoom >= maxZoom)
             maxZoom += minZoom;
