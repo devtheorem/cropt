@@ -845,9 +845,9 @@ export class Cropt {
                 this.options.viewport.height / img.naturalHeight,
             ),
         );
-        // Scale maxZoom down with the viewport so a resized viewport can't
+        // Scale maxZoom down with the viewport so resizing both dimensions won't
         // crop a smaller image area than the full-size viewport at max zoom.
-        const vpScale = Math.min(
+        const vpScale = Math.max(
             this.#vpWidth / this.options.viewport.width,
             this.#vpHeight / this.options.viewport.height,
         );
