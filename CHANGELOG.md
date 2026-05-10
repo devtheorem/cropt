@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.2] - 2026-05-10
+### Changed
+- `bind()` is now declared `async` (it already returned a Promise, so this does not affect usage).
+
+### Fixed
+- Viewport was not reset to its configured dimensions when binding a new image without restoring saved state.
+- Max zoom was incorrectly reduced when only one viewport dimension was resized.
+
+
 ## [1.2.1] - 2026-05-08
 ### Changed
 - Improved min/max zoom limits when the viewport is resized.
@@ -121,6 +130,7 @@ This is the initial pre-release after forking from [Foliotek/Croppie](https://gi
 - `showZoomer` option (hide via CSS instead if desired).
 
 [#6]: https://github.com/devtheorem/cropt/issues/6
+[1.2.2]: https://github.com/devtheorem/cropt/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/devtheorem/cropt/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/devtheorem/cropt/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/devtheorem/cropt/compare/v1.0.2...v1.1.1
