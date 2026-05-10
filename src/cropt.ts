@@ -211,7 +211,7 @@ export class Cropt {
      * Bind an image from an src string, and optionally restore saved state.
      * Returns a Promise which resolves when the image has been loaded and state is initialized.
      */
-    bind(src: string, state: CroptState | number | null = null) {
+    async bind(src: string, state: CroptState | number | null = null) {
         if (!src) {
             throw new Error("src cannot be empty");
         }
@@ -221,23 +221,25 @@ export class Cropt {
         this.#boundZoom = stateIsZoom ? state : (state?.zoom ?? null);
         this.elements.boundary.classList.add("cr-loading");
 
-        return loadImage(src).then((img) => {
-            this.elements.boundary.classList.remove("cr-loading");
-            this.#replaceImage(img);
-            if (state !== null && !stateIsZoom) {
-                this.#vpWidth = state.width;
-                this.#vpHeight = state.height;
-                this.#setOptionsCss();
-            }
-            this.#updatePropertiesFromImage();
-            if (state !== null && !stateIsZoom) {
-                const points = this.#getPoints();
-                this.#assignTransformCoordinates(
-                    (points.left - state.x) * this.#scale,
-                    (points.top - state.y) * this.#scale,
-                );
-            }
-        });
+        const img = await loadImage(src);
+        this.elements.boundary.classList.remove("cr-loading");
+        this.#replaceImage(img);
+        if (state !== null && !stateIsZoom) {
+            this.#vpWidth = state.width;
+            this.#vpHeight = state.height;
+        } else {
+            this.#vpWidth = this.options.viewport.width;
+            this.#vpHeight = this.options.viewport.height;
+        }
+        this.#setOptionsCss();
+        this.#updatePropertiesFromImage();
+        if (state !== null && !stateIsZoom) {
+            const points = this.#getPoints();
+            this.#assignTransformCoordinates(
+                (points.left - state.x) * this.#scale,
+                (points.top - state.y) * this.#scale,
+            );
+        }
     }
 
     /**
@@ -420,8 +422,8 @@ export class Cropt {
 
         while (cur.width * 0.5 > canvas.width) {
             // step down size by one half for smooth scaling
-            let curWidth = cur.width;
-            let curHeight = cur.height;
+            const curWidth = cur.width;
+            const curHeight = cur.height;
 
             cur = {
                 width: Math.floor(cur.width * 0.5),
@@ -638,7 +640,7 @@ export class Cropt {
                 let zoomVal = parseFloat(this.elements.zoomer.value);
                 let stepVal = ev.key === "ArrowUp" ? 0.01 : -0.01;
                 this.setZoom(zoomVal + stepVal);
-            } else if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(ev.key)) {
+            } else if (ev.key in arrowKeyDeltas) {
                 ev.preventDefault();
                 let [deltaX, deltaY] = arrowKeyDeltas[ev.key];
                 this.#assignTransformCoordinates(deltaX, deltaY);
