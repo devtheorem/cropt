@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.0] - 2026-07-05
+### Added
+- `enableRotate` option: when set to `true`, rotate buttons are shown allowing the image to be rotated in 90° increments.
+- `rotate()` method to programmatically rotate the image by a multiple of 90°. Can be used regardless of whether `enableRotate` is set ([#14](https://github.com/devtheorem/cropt/issues/14)).
+
+### Changed
+- When `enableResize` is `true`, binding an image without passing state auto-fits the crop viewport to the image's aspect ratio so the full image can be saved by default ([#13](https://github.com/devtheorem/cropt/issues/13)).
+
+
 ## [1.2.2] - 2026-05-10
 ### Changed
 - `bind()` is now declared `async` (it already returned a Promise, so this does not affect usage).
@@ -130,6 +139,7 @@ This is the initial pre-release after forking from [Foliotek/Croppie](https://gi
 - `showZoomer` option (hide via CSS instead if desired).
 
 [#6]: https://github.com/devtheorem/cropt/issues/6
+[1.3.0]: https://github.com/devtheorem/cropt/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/devtheorem/cropt/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/devtheorem/cropt/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/devtheorem/cropt/compare/v1.1.1...v1.2.0
