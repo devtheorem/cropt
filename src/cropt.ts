@@ -162,6 +162,7 @@ export class Cropt {
 
         this.#setOptionsCss();
         this.#initDraggable();
+        this.#initKeyboard();
         this.#initializeZoom();
 
         if (this.options.enableResize) {
@@ -598,7 +599,11 @@ export class Cropt {
             this.elements.overlay.addEventListener("pointercancel", pointerUp);
         };
 
-        let keyDown = (ev: KeyboardEvent) => {
+        this.elements.overlay.addEventListener("pointerdown", pointerDown);
+    }
+
+    #initKeyboard() {
+        const keyDown = (ev: KeyboardEvent) => {
             if (document.activeElement !== this.elements.viewport) {
                 return;
             }
@@ -615,7 +620,6 @@ export class Cropt {
             }
         };
 
-        this.elements.overlay.addEventListener("pointerdown", pointerDown);
         document.addEventListener("keydown", keyDown);
         this.#keyDownHandler = keyDown;
     }
