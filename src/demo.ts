@@ -33,7 +33,9 @@ let options: CroptOptions = {
         borderRadius: "0px",
     },
     enableResize: false,
+    enableRotate: false,
     zoomerInputClass: "form-range",
+    rotateButtonClass: "btn btn-outline-secondary btn-sm lh-1 p-1",
 };
 
 let savedState: CroptState | null = null;
@@ -43,7 +45,7 @@ function getCode() {
     const stateStr =
         savedState === null
             ? "null"
-            : `{ x: ${savedState.x}, y: ${savedState.y}, zoom: ${parseFloat(savedState.zoom.toFixed(3))}, width: ${savedState.width}, height: ${savedState.height} }`;
+            : `{ x: ${savedState.x}, y: ${savedState.y}, zoom: ${parseFloat(savedState.zoom.toFixed(3))}, width: ${savedState.width}, height: ${savedState.height}, rotation: ${savedState.rotation ?? 0} }`;
 
     const optionStr = `{
     mouseWheelZoom: "${options.mouseWheelZoom}",
@@ -53,7 +55,9 @@ function getCode() {
         borderRadius: "${vp.borderRadius}",
     },
     enableResize: ${options.enableResize},
+    enableRotate: ${options.enableRotate},
     zoomerInputClass: "${options.zoomerInputClass}",
+    rotateButtonClass: "${options.rotateButtonClass}",
 }`;
 
     return `import { Cropt } from "cropt";
@@ -133,6 +137,15 @@ function demoMain() {
         options.enableResize = enableResizeCheck.checked;
         setCode();
         cropt.setOptions({ enableResize: options.enableResize });
+    };
+
+    const showRotateCheck = getElById("showRotateCheck") as HTMLInputElement;
+    showRotateCheck.checked = options.enableRotate;
+
+    showRotateCheck.onchange = function () {
+        options.enableRotate = showRotateCheck.checked;
+        setCode();
+        cropt.setOptions({ enableRotate: options.enableRotate });
     };
 
     restoreStateBtn.onclick = () => {

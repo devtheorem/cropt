@@ -100,12 +100,26 @@ Default value: `false`
 
 If set to `true`, resize handles are shown on the edges of the viewport, allowing the user to adjust its size.
 
+### `enableRotate`
+
+Type: `boolean`  
+Default value: `false`
+
+If set to `true`, rotate buttons are shown beside the zoom slider, allowing the user to rotate the image 90° clockwise or counter-clockwise.
+
 ### `zoomerInputClass`
 
 Type: `string`  
 Default value: `"cr-slider"`
 
 Optionally set a different class on the zoom range input to customize styling (e.g. set to `"form-range"` when using Bootstrap).
+
+### `rotateButtonClass`
+
+Type: `string`  
+Default value: `"cr-rotate-btn"`
+
+Optionally set a different class on the rotate buttons to customize styling.
 
 ## Methods
 
@@ -114,13 +128,13 @@ Optionally set a different class on the zoom range input to customize styling (e
 Takes an image URL as the first argument. Returns a `Promise` which resolves when the image has been loaded and state is initialized.
 
 The optional second argument can be:
-- A `CroptState` object (returned by `getState()`) to restore a previously saved crop position, zoom, and viewport size.
+- A `CroptState` object (returned by `getState()`) to restore a previously saved crop position, zoom, viewport size, and rotation.
 - A `number` to set only the initial zoom level.
 
 ### `getState(): CroptState`
 
-Returns the current crop state as a `CroptState` object with fields `x`, `y`, `zoom`, `width`, and `height`.
-This can be stored alongside the original image and later passed to `bind()` to restore the crop position, zoom level, and viewport size.
+Returns the current crop state as a `CroptState` object with fields `x`, `y`, `zoom`, `width`, `height`, and `rotation`.
+This can be stored alongside the original image and later passed to `bind()` to restore the crop position, zoom level, viewport size, and rotation.
 
 ```javascript
 // Save state when the user is done cropping
@@ -153,6 +167,15 @@ The `type` and `quality` parameters are passed directly to the corresponding
 ### `setOptions(options: CroptOptions): void`
 
 Allows options to be dynamically changed on an existing Cropt instance.
+
+### `rotate(degrees: number): Promise<void>`
+
+Rotates the image by the specified amount (must be a multiple of 90°, e.g. `90`, `-90`, `180`).
+The new crop state is applied immediately, so `getState()` and `toCanvas()` reflect the
+rotation without awaiting. The returned `Promise` resolves once the rotation animation
+finishes (or immediately when the animation is skipped, e.g. under `prefers-reduced-motion`).
+
+This method can be used regardless of whether `enableRotate` is set to `true`.
 
 ### `setZoom(value: number): void`
 

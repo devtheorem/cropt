@@ -21,6 +21,7 @@ function getInitialElements() {
     return {
         boundary: document.createElement("div"),
         viewport: document.createElement("div"),
+        imageWrap: document.createElement("div"),
         preview: document.createElement("img"),
         overlay: document.createElement("div"),
         zoomerWrap: document.createElement("div"),
@@ -37,6 +38,35 @@ const arrowKeyDeltas: Record<string, [number, number]> = {
 
 function clamp(value: number, min: number, max: number) {
     return Math.max(min, Math.min(max, value));
+}
+
+function isQuarterTurn(deg: number) {
+    return deg === 90 || deg === 270;
+}
+
+/**
+ * Returns [width, height] for 0/180 and [height, width] for 90/270.
+ */
+function swapDims(width: number, height: number, deg: number): [number, number] {
+    return isQuarterTurn(deg) ? [height, width] : [width, height];
+}
+
+/**
+ * Maps a point from an image's displayed coordinate space to where the same pixel lands
+ * after the image content is rotated clockwise by deg (a multiple of 90). oW/oH are the
+ * pre-rotation displayed dimensions.
+ */
+function rotatePoint(x: number, y: number, oW: number, oH: number, deg: number): [number, number] {
+    if (deg === 90) return [oH - y, x];
+    if (deg === 180) return [oW - x, oH - y];
+    if (deg === 270) return [y, oW - x];
+    return [x, y];
+}
+
+function prefersReducedMotion() {
+    return (
+        typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches
+    );
 }
 
 /**
@@ -92,6 +122,7 @@ export interface CroptState {
     zoom: number;
     width: number;
     height: number;
+    rotation?: number;
 }
 
 export interface CroptOptions {
@@ -102,7 +133,9 @@ export interface CroptOptions {
         borderRadius: string;
     };
     enableResize: boolean;
+    enableRotate: boolean;
     zoomerInputClass: string;
+    rotateButtonClass: string;
 }
 
 interface CropPoints {
@@ -117,6 +150,7 @@ export class Cropt {
     elements: {
         boundary: HTMLDivElement;
         viewport: HTMLDivElement;
+        imageWrap: HTMLDivElement;
         preview: HTMLImageElement;
         overlay: HTMLDivElement;
         zoomerWrap: HTMLDivElement;
@@ -130,7 +164,9 @@ export class Cropt {
             borderRadius: "0px",
         },
         enableResize: false,
+        enableRotate: false,
         zoomerInputClass: "cr-slider",
+        rotateButtonClass: "cr-rotate-btn",
     };
     #boundZoom: number | null = null;
     #scale = 1;
@@ -138,20 +174,27 @@ export class Cropt {
     #ty = 0;
     #originX = 0;
     #originY = 0;
+    /**
+     * The crop viewport's position within the boundary, plus the boundary's size. Its width
+     * and height are not cached here — they are always #vpWidth/#vpHeight (the viewport is
+     * styled to exactly those), so bottom/right are derived from top/left + those.
+     */
     #vpRelRect = {
         top: 0,
         left: 0,
-        bottom: 0,
-        right: 0,
-        width: 0,
-        height: 0,
         boundWidth: 0,
         boundHeight: 0,
     };
     #keyDownHandler: ((ev: KeyboardEvent) => void) | null = null;
     #resizeHandles: HTMLDivElement | null = null;
+    #rotateBtns: [HTMLButtonElement, HTMLButtonElement] | null = null;
+    #rotation = 0;
+    #rotateAnims: Animation[] = [];
+    #previewCssWidth = 0;
+    #previewCssHeight = 0;
     #vpWidth = 0;
     #vpHeight = 0;
+
     constructor(element: HTMLElement, options: RecursivePartial<CroptOptions>) {
         if (element.classList.contains("cropt-container")) {
             throw new Error("Cropt is already initialized on this element");
@@ -166,13 +209,17 @@ export class Cropt {
         this.elements = getInitialElements();
         this.elements.zoomerWrap.classList.add("cr-slider-wrap");
         this.elements.boundary.classList.add("cr-boundary");
+        this.elements.imageWrap.classList.add("cr-image-wrap");
+        this.elements.preview.classList.add("cr-image");
         this.elements.viewport.classList.add("cr-viewport");
         this.elements.overlay.classList.add("cr-overlay");
 
         this.elements.viewport.setAttribute("tabindex", "0");
-        this.#setPreviewAttributes(this.elements.preview);
+        this.elements.preview.alt = "";
+        this.#setDragState(false);
 
-        this.elements.boundary.appendChild(this.elements.preview);
+        this.elements.imageWrap.appendChild(this.elements.preview);
+        this.elements.boundary.appendChild(this.elements.imageWrap);
         this.elements.boundary.appendChild(this.elements.viewport);
         this.elements.boundary.appendChild(this.elements.overlay);
 
@@ -193,6 +240,10 @@ export class Cropt {
         if (this.options.enableResize) {
             this.#initResizeHandles();
         }
+
+        if (this.options.enableRotate) {
+            this.#initRotationButtons();
+        }
     }
 
     /**
@@ -206,26 +257,46 @@ export class Cropt {
 
         // continue accepting a number as the second parameter for backwards compatibility
         const stateIsZoom = typeof state === "number";
-        this.#boundZoom = stateIsZoom ? state : (state?.zoom ?? null);
+        // The full saved state, or null when restoring only a zoom number (or nothing).
+        const cropState = stateIsZoom ? null : state;
+        const rotation = cropState?.rotation ?? 0;
+        this.#stopRotateAnim();
         this.elements.boundary.classList.add("cr-loading");
 
-        const img = await loadImage(src);
-        this.elements.boundary.classList.remove("cr-loading");
-        this.#replaceImage(img);
-        if (state !== null && !stateIsZoom) {
-            this.#vpWidth = state.width;
-            this.#vpHeight = state.height;
+        try {
+            const img = await loadImage(src);
+            // Pre-decode before swapping the preview src so it appears without a flash.
+            await img.decode();
+            this.elements.preview.src = src;
+            // Commit state only after async operations succeed. Rotation is applied as a CSS
+            // transform via #applyImageLayout (no rasterization); the preview always holds the
+            // unrotated original, and rotation is baked into pixels only at export time.
+            this.#boundZoom = stateIsZoom ? state : (cropState?.zoom ?? null);
+            this.#rotation = rotation;
+            [this.#previewCssWidth, this.#previewCssHeight] = swapDims(
+                img.naturalWidth,
+                img.naturalHeight,
+                rotation,
+            );
+            this.#applyImageLayout();
+        } finally {
+            this.elements.boundary.classList.remove("cr-loading");
+        }
+
+        if (cropState !== null) {
+            this.#vpWidth = cropState.width;
+            this.#vpHeight = cropState.height;
         } else {
             this.#vpWidth = this.options.viewport.width;
             this.#vpHeight = this.options.viewport.height;
         }
         this.#setOptionsCss();
         this.#updatePropertiesFromImage();
-        if (state !== null && !stateIsZoom) {
+        if (cropState !== null) {
             const points = this.#getPoints();
             this.#assignTransformCoordinates(
-                (points.left - state.x) * this.#scale,
-                (points.top - state.y) * this.#scale,
+                (points.left - cropState.x) * this.#scale,
+                (points.top - cropState.y) * this.#scale,
             );
         }
     }
@@ -241,11 +312,12 @@ export class Cropt {
             zoom: this.#scale,
             width: this.#vpWidth,
             height: this.#vpHeight,
+            rotation: this.#rotation,
         };
     }
 
     #getPoints() {
-        const imgData = this.elements.preview.getBoundingClientRect();
+        const imgData = this.elements.imageWrap.getBoundingClientRect();
         const vpData = this.elements.viewport.getBoundingClientRect();
         const left = vpData.left - imgData.left;
         const top = vpData.top - imgData.top;
@@ -267,8 +339,7 @@ export class Cropt {
      * If size is specified, the image will be scaled with its longest side set to size.
      */
     toCanvas(size: number | null = null) {
-        const vpRect = this.elements.viewport.getBoundingClientRect();
-        const ratio = vpRect.width / vpRect.height;
+        const ratio = this.#vpWidth / this.#vpHeight;
         const points = this.#getPoints();
         let width = points.right - points.left;
         let height = points.bottom - points.top;
@@ -296,7 +367,7 @@ export class Cropt {
             canvas.toBlob(
                 (blob) => {
                     if (blob === null) {
-                        reject("Canvas blob is null");
+                        reject(new Error("Canvas blob is null"));
                     } else {
                         resolve(blob);
                     }
@@ -311,6 +382,155 @@ export class Cropt {
         this.#updatePropertiesFromImage();
     }
 
+    /**
+     * Rotates the image by the specified degrees (must be a multiple of 90).
+     * Returns a Promise that resolves once the rotation is complete.
+     */
+    async rotate(degrees: number): Promise<void> {
+        if (degrees % 90 !== 0) {
+            throw new Error("degrees must be a multiple of 90");
+        }
+        // Normalize to a positive clockwise rotation in [0, 360].
+        const deg = ((degrees % 360) + 360) % 360;
+        // Return early if no rotation or no image bound yet.
+        if (deg === 0 || this.#previewCssWidth === 0) return;
+
+        // Cancel any in-flight rotation so the static transform (and #getPoints, which the
+        // commit reads) reflects the committed state rather than a mid-animation transform.
+        this.#stopRotateAnim();
+        // The shortest signed visual step (-90, 90, or ±180) so a CCW rotation animates the
+        // short way rather than spinning 270° the other direction.
+        const signedStep = ((deg + 180) % 360) - 180;
+        this.#commitRotation(deg);
+
+        if (!this.#isVisible() || prefersReducedMotion()) return;
+
+        const anim = this.#animateRotation(signedStep);
+        try {
+            await anim.finished;
+        } catch {
+            // The animation was cancelled (e.g. superseded by another rotation) — the final
+            // state is already committed, so resolve normally.
+        }
+    }
+
+    /**
+     * Synchronously updates all numeric state so the same image content stays under the
+     * (now W/H-swapped) crop frame. Because a rigid rotation about the viewport center
+     * preserves the crop region, staying within the image bounds is automatic.
+     */
+    #commitRotation(deg: number) {
+        const oWidth = this.#previewCssWidth;
+        const oHeight = this.#previewCssHeight;
+        // Captured before the swap, while the DOM still reflects the pre-rotation crop.
+        const points = this.#isVisible() ? this.#getPoints() : null;
+
+        [this.#vpWidth, this.#vpHeight] = swapDims(this.#vpWidth, this.#vpHeight, deg);
+        [this.#previewCssWidth, this.#previewCssHeight] = swapDims(oWidth, oHeight, deg);
+        this.#rotation = (this.#rotation + deg) % 360;
+        this.#setOptionsCss();
+        this.#applyImageLayout();
+
+        if (points !== null) {
+            this.#cacheViewportRect();
+            const vp = this.#vpRelRect;
+            // The crop rect's opposite corners, mapped into the new orientation. Their
+            // min is the reoriented top-left; a rigid rotation preserves the crop's size,
+            // so #scale is left unchanged.
+            const [ax, ay] = rotatePoint(points.left, points.top, oWidth, oHeight, deg);
+            const [bx, by] = rotatePoint(points.right, points.bottom, oWidth, oHeight, deg);
+            // Anchor that corner to the viewport's top-left. Using it as the transform
+            // origin makes the scale terms cancel out of the translation.
+            this.#originX = Math.min(ax, bx);
+            this.#originY = Math.min(ay, by);
+            this.#tx = vp.left - this.#originX;
+            this.#ty = vp.top - this.#originY;
+
+            // Rotation preserves the zoom level and (by symmetry of the swapped dimensions)
+            // the zoom range, so neither needs recomputing. Re-running #onZoom at the current
+            // scale is a visual no-op but repositions the origin to the viewport-center image
+            // point, so the next slider move zooms about the center instead of the corner
+            // anchor used above for the clamp.
+            this.setZoom(this.#scale);
+        }
+
+        this.#boundZoom = this.#scale;
+    }
+
+    /**
+     * Rigidly rotates the framed scene (image wrapper + crop frame) about the viewport
+     * center, from the previous orientation back to the already-committed one, so the same
+     * pixels stay inside the frame at every instant. Both elements share the identical
+     * `rotate(α)` about the viewport center, keeping them locked together.
+     */
+    #animateRotation(signedStep: number): Animation {
+        const vp = this.#vpRelRect;
+        const s = this.#scale;
+        // The committed wrapper transform expressed as a matrix about origin 0 0, so the
+        // prefixed rotation composes cleanly (its own transform-origin would otherwise apply).
+        const [ix, iy] = this.#imgTopLeft();
+        const m = `matrix(${s}, 0, 0, ${s}, ${ix}, ${iy})`;
+        // Wrapper local coords coincide with boundary coords (it sits at top:0/left:0).
+        const cx = vp.left + this.#vpWidth / 2;
+        const cy = vp.top + this.#vpHeight / 2;
+        // The viewport's local origin is its own top-left, so its center is its half-size.
+        const vcx = this.#vpWidth / 2;
+        const vcy = this.#vpHeight / 2;
+        const opts: KeyframeAnimationOptions = { duration: 250, easing: "ease-in-out" };
+
+        // Keyframes that rotate about (px, py) from the previous orientation back to the
+        // committed one (rotate(0)). The optional suffix is the element's committed transform.
+        const spin = (px: number, py: number, suffix = ""): Keyframe[] =>
+            [-signedStep, 0].map((ang) => ({
+                transformOrigin: "0 0",
+                transform: `translate(${px}px, ${py}px) rotate(${ang}deg) translate(${-px}px, ${-py}px) ${suffix}`,
+            }));
+
+        // The crop frame and the resize-handles container share the viewport's center and
+        // size, so the same rotation about that center keeps the handles locked to the frame.
+        const wrapAnim = this.elements.imageWrap.animate(spin(cx, cy, m), opts);
+        const frameAnims = this.#frameElements().map((el) => el.animate(spin(vcx, vcy), opts));
+
+        this.#rotateAnims = [wrapAnim, ...frameAnims];
+        wrapAnim.addEventListener("finish", () => {
+            // Cancelled animations fire "cancel", not "finish", so this only runs on natural
+            // completion. Restore the static styles the WAAPI fill was masking.
+            if (this.#rotateAnims[0] !== wrapAnim) return;
+            this.#restoreStaticTransforms();
+            this.#rotateAnims = [];
+        });
+        return wrapAnim;
+    }
+
+    /**
+     * Elements that make up the on-screen crop frame: the viewport and, when present, the
+     * resize-handles container. Both rotate rigidly with the image during a rotation.
+     */
+    #frameElements(): HTMLElement[] {
+        const els: HTMLElement[] = [this.elements.viewport];
+        if (this.#resizeHandles) els.push(this.#resizeHandles);
+        return els;
+    }
+
+    #restoreStaticTransforms() {
+        this.#applyTransform();
+        for (const el of this.#frameElements()) {
+            el.style.transform = "";
+            el.style.transformOrigin = "";
+        }
+    }
+
+    #cancelRotateAnims() {
+        for (const anim of this.#rotateAnims) anim.cancel();
+        this.#rotateAnims = [];
+    }
+
+    #stopRotateAnim() {
+        if (this.#rotateAnims.length === 0) return;
+        this.#cancelRotateAnims();
+        this.#restoreStaticTransforms();
+    }
+
     #mergeOptions(options: RecursivePartial<CroptOptions>) {
         const viewport = { ...this.options.viewport, ...options.viewport };
         this.options = { ...this.options, ...(options as CroptOptions), viewport };
@@ -320,6 +540,7 @@ export class Cropt {
         const curWidth = this.#vpWidth;
         const curHeight = this.#vpHeight;
         const hadResize = this.options.enableResize;
+        const hadRotateBtns = this.options.enableRotate;
 
         this.#mergeOptions(options);
         if (options.viewport?.width !== undefined) this.#vpWidth = this.options.viewport.width;
@@ -331,6 +552,12 @@ export class Cropt {
             this.#initResizeHandles();
         } else if (!this.options.enableResize && hadResize) {
             this.#removeResizeHandles();
+        }
+
+        if (this.options.enableRotate && !hadRotateBtns) {
+            this.#initRotationButtons();
+        } else if (!this.options.enableRotate && hadRotateBtns) {
+            this.#removeRotationButtons();
         }
 
         if (this.#vpWidth !== curWidth || this.#vpHeight !== curHeight) {
@@ -348,6 +575,7 @@ export class Cropt {
         if (this.#keyDownHandler) {
             document.removeEventListener("keydown", this.#keyDownHandler);
         }
+        this.#cancelRotateAnims();
         this.#removeResizeHandles();
         this.element.removeChild(this.elements.boundary);
         this.element.classList.remove("cropt-container");
@@ -365,22 +593,46 @@ export class Cropt {
             this.#resizeHandles.style.width = this.#vpWidth + "px";
             this.#resizeHandles.style.height = this.#vpHeight + "px";
         }
+        if (this.#rotateBtns) {
+            for (const btn of this.#rotateBtns) {
+                btn.className = this.options.rotateButtonClass;
+            }
+        }
+    }
+
+    /**
+     * Returns the displayed (rotation-baked) image, matching what #getPoints measures.
+     * The preview <img> holds the unrotated original — rotation is applied via CSS during
+     * interaction and rasterized here, onto a canvas about its center, only at export time.
+     */
+    #getRotatedSource(): HTMLCanvasElement | HTMLImageElement {
+        const img = this.elements.preview;
+        if (this.#rotation === 0) return img;
+        const canvas = document.createElement("canvas");
+        [canvas.width, canvas.height] = swapDims(
+            img.naturalWidth,
+            img.naturalHeight,
+            this.#rotation,
+        );
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) throw new Error("Canvas context cannot be null");
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((this.#rotation * Math.PI) / 180);
+        ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2);
+        return canvas;
     }
 
     #getUnscaledCanvas(p: CropPoints) {
         const sWidth = p.right - p.left;
         const sHeight = p.bottom - p.top;
         const canvas = document.createElement("canvas");
-        const ctx = canvas.getContext("2d");
-
-        if (ctx === null) {
-            throw new Error("Canvas context cannot be null");
-        }
-
         canvas.width = sWidth;
         canvas.height = sHeight;
-        const el = this.elements.preview;
-        ctx.drawImage(el, p.left, p.top, sWidth, sHeight, 0, 0, canvas.width, canvas.height);
+        const ctx = canvas.getContext("2d");
+        if (ctx === null) throw new Error("Canvas context cannot be null");
+
+        const el = this.#getRotatedSource();
+        ctx.drawImage(el, p.left, p.top, sWidth, sHeight, 0, 0, sWidth, sHeight);
 
         return canvas;
     }
@@ -433,10 +685,10 @@ export class Cropt {
     #getVirtualBoundaries(): { x: AxisBounds; y: AxisBounds } {
         const scale = this.#scale;
         const vp = this.#vpRelRect;
-        const natWidth = this.elements.preview.naturalWidth;
-        const natHeight = this.elements.preview.naturalHeight;
-        const originMinX = vp.width / 2 / scale;
-        const originMinY = vp.height / 2 / scale;
+        const natWidth = this.#previewCssWidth;
+        const natHeight = this.#previewCssHeight;
+        const originMinX = this.#vpWidth / 2 / scale;
+        const originMinY = this.#vpHeight / 2 / scale;
         const translateMaxX = vp.boundWidth / 2 - originMinX;
         const translateMaxY = vp.boundHeight / 2 - originMinY;
 
@@ -462,9 +714,45 @@ export class Cropt {
      * the next line and rely on this transform already being applied.
      */
     #applyTransform() {
-        const preview = this.elements.preview;
-        preview.style.transform = `translate(${this.#tx}px, ${this.#ty}px) scale(${this.#scale})`;
-        preview.style.transformOrigin = `${this.#originX}px ${this.#originY}px`;
+        const wrap = this.elements.imageWrap;
+        wrap.style.transform = `translate(${this.#tx}px, ${this.#ty}px) scale(${this.#scale})`;
+        wrap.style.transformOrigin = `${this.#originX}px ${this.#originY}px`;
+    }
+
+    /**
+     * Boundary-space position of the image's top-left corner under the current transform.
+     */
+    #imgTopLeft(): [number, number] {
+        return [
+            this.#originX * (1 - this.#scale) + this.#tx,
+            this.#originY * (1 - this.#scale) + this.#ty,
+        ];
+    }
+
+    /**
+     * Sizes the wrapper to the displayed (rotation-swapped) dimensions, and centers the
+     * unrotated <img> within it rotated by #rotation. Because the img is centered on the
+     * wrapper's center and rotation preserves that center, a quarter-turn img's bounding
+     * box exactly fills the wrapper (no gap or overflow).
+     */
+    #applyImageLayout() {
+        const wrap = this.elements.imageWrap;
+        const img = this.elements.preview;
+        // Natural (unrotated) dims = displayed dims swapped back when rotated a quarter turn.
+        // Derived rather than read from img.naturalWidth so the layout is correct even before
+        // the bitmap finishes loading during bind().
+        const [natWidth, natHeight] = swapDims(
+            this.#previewCssWidth,
+            this.#previewCssHeight,
+            this.#rotation,
+        );
+        wrap.style.width = this.#previewCssWidth + "px";
+        wrap.style.height = this.#previewCssHeight + "px";
+        img.style.width = natWidth + "px";
+        img.style.height = natHeight + "px";
+        img.style.left = (this.#previewCssWidth - natWidth) / 2 + "px";
+        img.style.top = (this.#previewCssHeight - natHeight) / 2 + "px";
+        img.style.transform = `rotate(${this.#rotation}deg)`;
     }
 
     #assignTransformCoordinates(deltaX: number, deltaY: number) {
@@ -472,13 +760,12 @@ export class Cropt {
         const vp = this.#vpRelRect;
 
         // Origin is left unchanged here; only the translation is clamped and updated.
-        const imgRelTop = this.#originY * (1 - scale) + this.#ty;
-        const imgRelLeft = this.#originX * (1 - scale) + this.#tx;
-        const imgRelBottom = imgRelTop + this.elements.preview.naturalHeight * scale;
-        const imgRelRight = imgRelLeft + this.elements.preview.naturalWidth * scale;
+        const [imgRelLeft, imgRelTop] = this.#imgTopLeft();
+        const imgRelBottom = imgRelTop + this.#previewCssHeight * scale;
+        const imgRelRight = imgRelLeft + this.#previewCssWidth * scale;
 
-        const clampY = clamp(deltaY, vp.bottom - imgRelBottom, vp.top - imgRelTop);
-        const clampX = clamp(deltaX, vp.right - imgRelRight, vp.left - imgRelLeft);
+        const clampY = clamp(deltaY, vp.top + this.#vpHeight - imgRelBottom, vp.top - imgRelTop);
+        const clampX = clamp(deltaX, vp.left + this.#vpWidth - imgRelRight, vp.left - imgRelLeft);
         this.#ty += clampY;
         this.#tx += clampX;
 
@@ -491,10 +778,6 @@ export class Cropt {
         this.#vpRelRect = {
             top: vpRect.top - boundRect.top,
             left: vpRect.left - boundRect.left,
-            bottom: vpRect.bottom - boundRect.top,
-            right: vpRect.right - boundRect.left,
-            width: vpRect.width,
-            height: vpRect.height,
             boundWidth: boundRect.width,
             boundHeight: boundRect.height,
         };
@@ -580,7 +863,7 @@ export class Cropt {
                     flushPending();
                 }
 
-                this.#setDragState(false, this.elements.preview);
+                this.#setDragState(false);
                 lastPinchDist = 0;
             }
         };
@@ -589,6 +872,10 @@ export class Cropt {
             if (ev.button || pEventCache.length >= 2) {
                 return; // non-left mouse button press or already tracking 2 touch points
             }
+
+            // A new interaction supersedes any in-flight rotation animation, which otherwise
+            // masks the wrapper's inline transform until it finishes.
+            this.#stopRotateAnim();
 
             // Don't call preventDefault() in pointerdown, since this causes Firefox to only
             // emit pointermove events for subsequent pointers when the first one isn't moving,
@@ -608,7 +895,7 @@ export class Cropt {
 
             originalX = ev.pageX;
             originalY = ev.pageY;
-            this.#setDragState(true, this.elements.preview);
+            this.#setDragState(true);
 
             this.elements.overlay.addEventListener("pointermove", pointerMove);
             this.elements.overlay.addEventListener("pointerup", pointerUp);
@@ -631,6 +918,7 @@ export class Cropt {
                 this.setZoom(zoomVal + stepVal);
             } else if (ev.key in arrowKeyDeltas) {
                 ev.preventDefault();
+                this.#stopRotateAnim();
                 let [deltaX, deltaY] = arrowKeyDeltas[ev.key];
                 this.#assignTransformCoordinates(deltaX, deltaY);
             }
@@ -665,11 +953,41 @@ export class Cropt {
         this.#resizeHandles = null;
     }
 
+    #makeRotateBtn(isLeft: boolean): HTMLButtonElement {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = this.options.rotateButtonClass;
+        btn.setAttribute("aria-label", isLeft ? "Rotate counterclockwise" : "Rotate clockwise");
+        btn.innerHTML = isLeft
+            ? `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 -1 16 16" aria-hidden="true" style="display:block"><path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z"/><path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466"/></svg>`
+            : `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 -1 16 16" aria-hidden="true" style="display:block"><path fill-rule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2z"/><path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466"/></svg>`;
+        btn.addEventListener("click", () => this.rotate(isLeft ? -90 : 90));
+        return btn;
+    }
+
+    #initRotationButtons() {
+        if (this.#rotateBtns) return;
+        const left = this.#makeRotateBtn(true);
+        const right = this.#makeRotateBtn(false);
+        this.elements.zoomerWrap.insertBefore(left, this.elements.zoomer);
+        this.elements.zoomerWrap.appendChild(right);
+        this.#rotateBtns = [left, right];
+    }
+
+    #removeRotationButtons() {
+        if (!this.#rotateBtns) return;
+        for (const btn of this.#rotateBtns) {
+            this.elements.zoomerWrap.removeChild(btn);
+        }
+        this.#rotateBtns = null;
+    }
+
     #initHandleDrag(handle: HTMLDivElement, direction: string) {
         handle.addEventListener("pointerdown", (ev: PointerEvent) => {
             if (ev.button) return;
             ev.preventDefault();
             ev.stopPropagation();
+            this.#stopRotateAnim();
 
             const origX = ev.pageX;
             const origY = ev.pageY;
@@ -689,9 +1007,10 @@ export class Cropt {
                 const ev = pendingEv;
                 pendingEv = null;
 
+                const [optMaxW, optMaxH] = this.#effectiveViewportMax();
                 const [pointerDelta, origSize, maxSize] = isHoriz
-                    ? [ev.pageX - origX, origW, this.options.viewport.width]
-                    : [ev.pageY - origY, origH, this.options.viewport.height];
+                    ? [ev.pageX - origX, origW, optMaxW]
+                    : [ev.pageY - origY, origH, optMaxH];
                 const newSize = Math.round(
                     clamp(origSize + 2 * sign * pointerDelta, minSize, maxSize),
                 );
@@ -751,6 +1070,7 @@ export class Cropt {
     }
 
     #onZoom() {
+        this.#stopRotateAnim();
         const vp = this.#vpRelRect;
 
         this.#scale = parseFloat(this.elements.zoomer.value);
@@ -761,10 +1081,9 @@ export class Cropt {
         let oy = this.#originY;
 
         // Reposition origin to viewport center while keeping the image visually stationary.
-        const imgLeft = ox * (1 - scale) + tx;
-        const imgTop = oy * (1 - scale) + ty;
-        ox = (vp.left - imgLeft + vp.width / 2) / scale;
-        oy = (vp.top - imgTop + vp.height / 2) / scale;
+        const [imgLeft, imgTop] = this.#imgTopLeft();
+        ox = (vp.left - imgLeft + this.#vpWidth / 2) / scale;
+        oy = (vp.top - imgTop + this.#vpHeight / 2) / scale;
         tx = imgLeft - ox * (1 - scale);
         ty = imgTop - oy * (1 - scale);
 
@@ -779,27 +1098,13 @@ export class Cropt {
         this.#applyTransform();
     }
 
-    #replaceImage(img: HTMLImageElement) {
-        this.#setPreviewAttributes(img);
-        if (this.elements.preview.parentNode) {
-            this.elements.preview.parentNode.replaceChild(img, this.elements.preview);
-        }
-        this.elements.preview = img;
-    }
-
-    #setPreviewAttributes(preview: HTMLImageElement) {
-        preview.classList.add("cr-image");
-        preview.setAttribute("alt", "preview");
-        this.#setDragState(false, preview);
-    }
-
-    #setDragState(isDragging: boolean, preview: HTMLImageElement) {
-        preview.setAttribute("aria-grabbed", isDragging.toString());
+    #setDragState(isDragging: boolean) {
+        this.elements.preview.setAttribute("aria-grabbed", isDragging.toString());
         this.elements.boundary.setAttribute("aria-dropeffect", isDragging ? "move" : "none");
     }
 
     #isVisible() {
-        return this.elements.preview.offsetParent !== null;
+        return this.elements.imageWrap.offsetParent !== null;
     }
 
     #updatePropertiesFromImage() {
@@ -819,25 +1124,28 @@ export class Cropt {
         this.#centerImage();
     }
 
+    /**
+     * The option viewport maxima, swapped to match the live frame orientation when the
+     * image is rotated a quarter turn (the frame rotates with the image, so its per-axis
+     * maximum extent rotates too).
+     */
+    #effectiveViewportMax(): [number, number] {
+        return swapDims(this.options.viewport.width, this.options.viewport.height, this.#rotation);
+    }
+
     #setZoomRange() {
-        const img = this.elements.preview;
-        if (img.naturalWidth === 0) return;
+        if (this.#previewCssWidth === 0) return;
+        const [optMaxW, optMaxH] = this.#effectiveViewportMax();
         // Cover the current viewport, but never zoom out so far that the
         // image would be smaller than fitting within the options viewport.
         const minZoom = Math.max(
-            this.#vpWidth / img.naturalWidth,
-            this.#vpHeight / img.naturalHeight,
-            Math.min(
-                this.options.viewport.width / img.naturalWidth,
-                this.options.viewport.height / img.naturalHeight,
-            ),
+            this.#vpWidth / this.#previewCssWidth,
+            this.#vpHeight / this.#previewCssHeight,
+            Math.min(optMaxW / this.#previewCssWidth, optMaxH / this.#previewCssHeight),
         );
         // Scale maxZoom down with the viewport so resizing both dimensions won't
         // crop a smaller image area than the full-size viewport at max zoom.
-        const vpScale = Math.max(
-            this.#vpWidth / this.options.viewport.width,
-            this.#vpHeight / this.options.viewport.height,
-        );
+        const vpScale = Math.max(this.#vpWidth / optMaxW, this.#vpHeight / optMaxH);
         let maxZoom = 0.85 * vpScale;
         if (minZoom >= maxZoom) maxZoom += minZoom;
         // min zoom cannot be rounded, or large images won't match the viewport size when zoomed out
@@ -847,12 +1155,14 @@ export class Cropt {
 
     #updateZoomLimits() {
         this.#setZoomRange();
-        const img = this.elements.preview;
         let zoom = this.#boundZoom;
 
         if (zoom === null) {
             const vp = this.#vpRelRect;
-            zoom = Math.max(vp.boundWidth / img.naturalWidth, vp.boundHeight / img.naturalHeight);
+            zoom = Math.max(
+                vp.boundWidth / this.#previewCssWidth,
+                vp.boundHeight / this.#previewCssHeight,
+            );
         }
 
         this.setZoom(zoom);
@@ -860,11 +1170,10 @@ export class Cropt {
 
     #centerImage() {
         const vp = this.#vpRelRect;
-        const preview = this.elements.preview;
-        this.#originX = preview.naturalWidth / 2;
-        this.#originY = preview.naturalHeight / 2;
-        this.#tx = vp.left + vp.width / 2 - this.#originX;
-        this.#ty = vp.top + vp.height / 2 - this.#originY;
+        this.#originX = this.#previewCssWidth / 2;
+        this.#originY = this.#previewCssHeight / 2;
+        this.#tx = vp.left + this.#vpWidth / 2 - this.#originX;
+        this.#ty = vp.top + this.#vpHeight / 2 - this.#originY;
         this.#applyTransform();
     }
 }
