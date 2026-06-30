@@ -1,45 +1,3 @@
-class Transform {
-    constructor(
-        public x: number,
-        public y: number,
-        public scale: number,
-    ) {}
-
-    toString() {
-        return `translate(${this.x}px, ${this.y}px) scale(${this.scale})`;
-    }
-
-    static parse(img: HTMLImageElement) {
-        const values = img.style.transform.split(") ");
-        const translate = values[0].substring("translate".length + 1).split(",");
-        const scale = values.length > 1 ? values[1].substring(6) : "1";
-        const x = translate.length > 1 ? translate[0] : "0";
-        const y = translate.length > 1 ? translate[1] : "0";
-
-        return new Transform(parseFloat(x), parseFloat(y), parseFloat(scale));
-    }
-}
-
-class TransformOrigin {
-    x: number;
-    y: number;
-
-    constructor(el?: HTMLImageElement) {
-        if (!el || !el.style.transformOrigin) {
-            this.x = 0;
-            this.y = 0;
-            return;
-        }
-        const [x, y] = el.style.transformOrigin.split(" ");
-        this.x = parseFloat(x);
-        this.y = parseFloat(y);
-    }
-
-    toString() {
-        return this.x + "px " + this.y + "px";
-    }
-}
-
 function setZoomerVal(value: number, zoomer: HTMLInputElement) {
     const zMin = parseFloat(zoomer.min);
     const zMax = parseFloat(zoomer.max);
@@ -151,6 +109,10 @@ export class Cropt {
     };
     #boundZoom: number | null = null;
     #scale = 1;
+    #tx = 0;
+    #ty = 0;
+    #originX = 0;
+    #originY = 0;
     #vpRelRect = {
         top: 0,
         left: 0,
@@ -259,18 +221,14 @@ export class Cropt {
     #getPoints() {
         const imgData = this.elements.preview.getBoundingClientRect();
         const vpData = this.elements.viewport.getBoundingClientRect();
-        const oWidth = this.elements.viewport.offsetWidth;
-        const oHeight = this.elements.viewport.offsetHeight;
-        const widthDiff = (vpData.width - oWidth) / 2;
-        const heightDiff = (vpData.height - oHeight) / 2;
         const left = vpData.left - imgData.left;
         const top = vpData.top - imgData.top;
 
         return {
             left: this.#getPoint(left),
             top: this.#getPoint(top),
-            right: this.#getPoint(left + oWidth + widthDiff),
-            bottom: this.#getPoint(top + oHeight + heightDiff),
+            right: this.#getPoint(left + vpData.width),
+            bottom: this.#getPoint(top + vpData.height),
         };
     }
 
@@ -472,23 +430,33 @@ export class Cropt {
         };
     }
 
+    /**
+     * Writes the numeric transform state to the DOM. Must stay synchronous (no await, no
+     * requestAnimationFrame): callers read getBoundingClientRect() or swap the image src on
+     * the next line and rely on this transform already being applied.
+     */
+    #applyTransform() {
+        const preview = this.elements.preview;
+        preview.style.transform = `translate(${this.#tx}px, ${this.#ty}px) scale(${this.#scale})`;
+        preview.style.transformOrigin = `${this.#originX}px ${this.#originY}px`;
+    }
+
     #assignTransformCoordinates(deltaX: number, deltaY: number) {
-        const transform = Transform.parse(this.elements.preview);
-        const curOrigin = new TransformOrigin(this.elements.preview);
         const scale = this.#scale;
         const vp = this.#vpRelRect;
 
-        const imgRelTop = curOrigin.y * (1 - scale) + transform.y;
-        const imgRelLeft = curOrigin.x * (1 - scale) + transform.x;
+        // Origin is left unchanged here; only the translation is clamped and updated.
+        const imgRelTop = this.#originY * (1 - scale) + this.#ty;
+        const imgRelLeft = this.#originX * (1 - scale) + this.#tx;
         const imgRelBottom = imgRelTop + this.elements.preview.naturalHeight * scale;
         const imgRelRight = imgRelLeft + this.elements.preview.naturalWidth * scale;
 
         const clampY = clamp(deltaY, vp.bottom - imgRelBottom, vp.top - imgRelTop);
         const clampX = clamp(deltaX, vp.right - imgRelRight, vp.left - imgRelLeft);
-        transform.y += clampY;
-        transform.x += clampX;
+        this.#ty += clampY;
+        this.#tx += clampX;
 
-        this.elements.preview.style.transform = transform.toString();
+        this.#applyTransform();
     }
 
     #cacheViewportRect() {
@@ -773,28 +741,32 @@ export class Cropt {
     }
 
     #onZoom() {
-        const transform = Transform.parse(this.elements.preview);
-        const origin = new TransformOrigin(this.elements.preview);
         const vp = this.#vpRelRect;
 
         this.#scale = parseFloat(this.elements.zoomer.value);
         const scale = this.#scale;
-        transform.scale = scale;
+        let tx = this.#tx;
+        let ty = this.#ty;
+        let ox = this.#originX;
+        let oy = this.#originY;
 
         // Reposition origin to viewport center while keeping the image visually stationary.
-        const imgLeft = origin.x * (1 - scale) + transform.x;
-        const imgTop = origin.y * (1 - scale) + transform.y;
-        origin.x = (vp.left - imgLeft + vp.width / 2) / scale;
-        origin.y = (vp.top - imgTop + vp.height / 2) / scale;
-        transform.x = imgLeft - origin.x * (1 - scale);
-        transform.y = imgTop - origin.y * (1 - scale);
+        const imgLeft = ox * (1 - scale) + tx;
+        const imgTop = oy * (1 - scale) + ty;
+        ox = (vp.left - imgLeft + vp.width / 2) / scale;
+        oy = (vp.top - imgTop + vp.height / 2) / scale;
+        tx = imgLeft - ox * (1 - scale);
+        ty = imgTop - oy * (1 - scale);
 
         const { x, y } = this.#getVirtualBoundaries();
-        [transform.x, origin.x] = clampAxis(transform.x, origin.x, x);
-        [transform.y, origin.y] = clampAxis(transform.y, origin.y, y);
+        [tx, ox] = clampAxis(tx, ox, x);
+        [ty, oy] = clampAxis(ty, oy, y);
 
-        this.elements.preview.style.transform = transform.toString();
-        this.elements.preview.style.transformOrigin = origin.toString();
+        this.#tx = tx;
+        this.#ty = ty;
+        this.#originX = ox;
+        this.#originY = oy;
+        this.#applyTransform();
     }
 
     #replaceImage(img: HTMLImageElement) {
@@ -825,9 +797,12 @@ export class Cropt {
             return;
         }
 
-        const preview = this.elements.preview;
-        preview.style.transform = new Transform(0, 0, 1).toString();
-        preview.style.transformOrigin = new TransformOrigin().toString();
+        this.#tx = 0;
+        this.#ty = 0;
+        this.#originX = 0;
+        this.#originY = 0;
+        this.#scale = 1;
+        this.#applyTransform();
 
         this.#cacheViewportRect();
         this.#updateZoomLimits();
@@ -876,13 +851,10 @@ export class Cropt {
     #centerImage() {
         const vp = this.#vpRelRect;
         const preview = this.elements.preview;
-        const origin = new TransformOrigin();
-        origin.x = preview.naturalWidth / 2;
-        origin.y = preview.naturalHeight / 2;
-        const transform = new Transform(0, 0, this.#scale);
-        transform.x = vp.left + vp.width / 2 - origin.x;
-        transform.y = vp.top + vp.height / 2 - origin.y;
-        preview.style.transform = transform.toString();
-        preview.style.transformOrigin = origin.toString();
+        this.#originX = preview.naturalWidth / 2;
+        this.#originY = preview.naturalHeight / 2;
+        this.#tx = vp.left + vp.width / 2 - this.#originX;
+        this.#ty = vp.top + vp.height / 2 - this.#originY;
+        this.#applyTransform();
     }
 }
