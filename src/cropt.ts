@@ -39,6 +39,31 @@ function clamp(value: number, min: number, max: number) {
     return Math.max(min, Math.min(max, value));
 }
 
+/**
+ * Coalesces repeated calls into a single requestAnimationFrame. Owns only the rAF lifecycle;
+ * the flush callback runs synchronously inside the frame (and on cancel, at the call site).
+ */
+function rafBatcher(flush: () => void) {
+    let rafId = 0;
+    return {
+        schedule() {
+            if (rafId === 0) {
+                rafId = requestAnimationFrame(() => {
+                    rafId = 0;
+                    flush();
+                });
+            }
+        },
+        // Returns true if a frame was pending.
+        cancel() {
+            if (rafId === 0) return false;
+            cancelAnimationFrame(rafId);
+            rafId = 0;
+            return true;
+        },
+    };
+}
+
 interface AxisBounds {
     translateMin: number;
     translateMax: number;
@@ -484,13 +509,13 @@ export class Cropt {
         let lastMidY = 0;
         let pendingDeltaX = 0;
         let pendingDeltaY = 0;
-        let rafId = 0;
 
         let flushPending = () => {
             this.#assignTransformCoordinates(pendingDeltaX, pendingDeltaY);
             pendingDeltaX = 0;
             pendingDeltaY = 0;
         };
+        const batch = rafBatcher(flushPending);
 
         let pointerMove = (ev: PointerEvent) => {
             ev.preventDefault();
@@ -526,12 +551,7 @@ export class Cropt {
             originalX = ev.pageX;
             originalY = ev.pageY;
 
-            if (rafId === 0) {
-                rafId = requestAnimationFrame(() => {
-                    rafId = 0;
-                    flushPending();
-                });
-            }
+            batch.schedule();
         };
 
         let pointerUp = (ev: PointerEvent) => {
@@ -556,12 +576,8 @@ export class Cropt {
                 this.elements.overlay.removeEventListener("pointerup", pointerUp);
                 this.elements.overlay.removeEventListener("pointercancel", pointerUp);
 
-                if (rafId !== 0) {
-                    cancelAnimationFrame(rafId);
-                    rafId = 0;
-                    if (pendingDeltaX !== 0 || pendingDeltaY !== 0) {
-                        flushPending();
-                    }
+                if (batch.cancel() && (pendingDeltaX !== 0 || pendingDeltaY !== 0)) {
+                    flushPending();
                 }
 
                 this.#setDragState(false, this.elements.preview);
@@ -667,7 +683,6 @@ export class Cropt {
             const sign = direction === "e" || direction === "s" ? 1 : -1;
 
             let pendingEv: PointerEvent | null = null;
-            let rafId = 0;
 
             const flushPending = () => {
                 if (pendingEv === null) return;
@@ -693,25 +708,16 @@ export class Cropt {
                 this.setZoom(this.#scale);
             };
 
+            const batch = rafBatcher(flushPending);
             const onMove = (ev: PointerEvent) => {
                 ev.preventDefault();
                 pendingEv = ev;
-
-                if (rafId === 0) {
-                    rafId = requestAnimationFrame(() => {
-                        rafId = 0;
-                        flushPending();
-                    });
-                }
+                batch.schedule();
             };
 
             const ac = new AbortController();
             const onUp = () => {
-                if (rafId !== 0) {
-                    cancelAnimationFrame(rafId);
-                    rafId = 0;
-                    flushPending();
-                }
+                if (batch.cancel()) flushPending();
                 ac.abort();
             };
             handle.addEventListener("pointermove", onMove, { signal: ac.signal });
