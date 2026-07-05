@@ -1,9 +1,15 @@
-.cropt-container .cr-image {
+.cropt-container .cr-image-wrap {
     z-index: -1;
     position: absolute;
     top: 0;
     left: 0;
     transform-origin: 0 0;
+    will-change: transform;
+}
+
+.cropt-container .cr-image {
+    position: absolute;
+    transform-origin: center;
     max-height: none;
     max-width: none;
     pointer-events: none; /* prevent image context menu on Android */
@@ -56,10 +62,42 @@
 
 .cropt-container .cr-slider-wrap {
     margin: 15px auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .cropt-container .cr-slider {
     width: 100%;
+}
+
+.cropt-container .cr-rotate-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    cursor: pointer;
+    color: inherit;
+}
+
+.cropt-container .cr-rotate-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+    .cropt-container .cr-rotate-btn {
+        border-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .cropt-container .cr-rotate-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+    }
 }
 
 .cropt-container .cr-resize-handles {

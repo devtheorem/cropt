@@ -21,19 +21,28 @@ let boundSrc = photoSrc;
 let options = {
     mouseWheelZoom: "on",
     viewport: {
-        width: 220,
-        height: 220,
+        width: 230,
+        height: 230,
         borderRadius: "0px",
     },
     enableResize: false,
+    enableRotate: false,
     zoomerInputClass: "form-range",
+    rotateButtonClass: "btn btn-outline-secondary btn-sm lh-1 p-1",
 };
 let savedState = null;
+const urlParams = new URLSearchParams(location.search);
+if (urlParams.get("enableResize") === "1") {
+    options.enableResize = true;
+}
+if (urlParams.get("enableRotate") === "1") {
+    options.enableRotate = true;
+}
 function getCode() {
     const vp = options.viewport;
     const stateStr = savedState === null
         ? "null"
-        : `{ x: ${savedState.x}, y: ${savedState.y}, zoom: ${parseFloat(savedState.zoom.toFixed(3))}, width: ${savedState.width}, height: ${savedState.height} }`;
+        : `{ x: ${savedState.x}, y: ${savedState.y}, zoom: ${parseFloat(savedState.zoom.toFixed(3))}, width: ${savedState.width}, height: ${savedState.height}, rotation: ${savedState.rotation ?? 0} }`;
     const optionStr = `{
     mouseWheelZoom: "${options.mouseWheelZoom}",
     viewport: {
@@ -42,7 +51,9 @@ function getCode() {
         borderRadius: "${vp.borderRadius}",
     },
     enableResize: ${options.enableResize},
+    enableRotate: ${options.enableRotate},
     zoomerInputClass: "${options.zoomerInputClass}",
+    rotateButtonClass: "${options.rotateButtonClass}",
 }`;
     return `import { Cropt } from "cropt";
 
@@ -73,6 +84,17 @@ function getElById(elementId) {
 function setCode() {
     const code = getCode();
     getElById("code-el").innerHTML = hljs.highlight(code, { language: "javascript" }).value;
+}
+function setUrlParam(name, checked) {
+    const params = new URLSearchParams(location.search);
+    if (checked) {
+        params.set(name, "1");
+    }
+    else {
+        params.delete(name);
+    }
+    const query = params.toString();
+    history.replaceState(null, "", query ? `?${query}` : location.pathname);
 }
 function debounce(func, wait) {
     let timer = 0;
@@ -107,8 +129,17 @@ function demoMain() {
     enableResizeCheck.checked = options.enableResize;
     enableResizeCheck.onchange = function () {
         options.enableResize = enableResizeCheck.checked;
+        setUrlParam("enableResize", enableResizeCheck.checked);
         setCode();
         cropt.setOptions({ enableResize: options.enableResize });
+    };
+    const showRotateCheck = getElById("showRotateCheck");
+    showRotateCheck.checked = options.enableRotate;
+    showRotateCheck.onchange = function () {
+        options.enableRotate = showRotateCheck.checked;
+        setUrlParam("enableRotate", showRotateCheck.checked);
+        setCode();
+        cropt.setOptions({ enableRotate: options.enableRotate });
     };
     restoreStateBtn.onclick = () => {
         cropt.bind(boundSrc, savedState);
