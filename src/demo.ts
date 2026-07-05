@@ -28,8 +28,8 @@ let boundSrc = photoSrc;
 let options: CroptOptions = {
     mouseWheelZoom: "on",
     viewport: {
-        width: 220,
-        height: 220,
+        width: 230,
+        height: 230,
         borderRadius: "0px",
     },
     enableResize: false,
@@ -39,6 +39,14 @@ let options: CroptOptions = {
 };
 
 let savedState: CroptState | null = null;
+
+const urlParams = new URLSearchParams(location.search);
+if (urlParams.get("enableResize") === "1") {
+    options.enableResize = true;
+}
+if (urlParams.get("enableRotate") === "1") {
+    options.enableRotate = true;
+}
 
 function getCode() {
     const vp = options.viewport;
@@ -95,6 +103,17 @@ function setCode() {
     getElById("code-el").innerHTML = hljs.highlight(code, { language: "javascript" }).value;
 }
 
+function setUrlParam(name: string, checked: boolean) {
+    const params = new URLSearchParams(location.search);
+    if (checked) {
+        params.set(name, "1");
+    } else {
+        params.delete(name);
+    }
+    const query = params.toString();
+    history.replaceState(null, "", query ? `?${query}` : location.pathname);
+}
+
 function debounce(func: () => void, wait: number) {
     let timer = 0;
     return () => {
@@ -135,6 +154,7 @@ function demoMain() {
 
     enableResizeCheck.onchange = function () {
         options.enableResize = enableResizeCheck.checked;
+        setUrlParam("enableResize", enableResizeCheck.checked);
         setCode();
         cropt.setOptions({ enableResize: options.enableResize });
     };
@@ -144,6 +164,7 @@ function demoMain() {
 
     showRotateCheck.onchange = function () {
         options.enableRotate = showRotateCheck.checked;
+        setUrlParam("enableRotate", showRotateCheck.checked);
         setCode();
         cropt.setOptions({ enableRotate: options.enableRotate });
     };
