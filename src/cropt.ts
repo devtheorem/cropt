@@ -29,6 +29,8 @@ function getInitialElements() {
     };
 }
 
+const MIN_SIZE = 60;
+
 const arrowKeyDeltas: Record<string, [number, number]> = {
     ArrowLeft: [2, 0],
     ArrowUp: [0, 2],
@@ -289,6 +291,9 @@ export class Cropt {
         } else {
             this.#vpWidth = this.options.viewport.width;
             this.#vpHeight = this.options.viewport.height;
+            if (this.options.enableResize) {
+                this.#fitViewportToImage();
+            }
         }
         this.#setOptionsCss();
         this.#updatePropertiesFromImage();
@@ -993,7 +998,6 @@ export class Cropt {
             const origY = ev.pageY;
             const origW = this.#vpWidth;
             const origH = this.#vpHeight;
-            const minSize = 60;
 
             handle.setPointerCapture(ev.pointerId);
 
@@ -1012,7 +1016,7 @@ export class Cropt {
                     ? [ev.pageX - origX, origW, optMaxW]
                     : [ev.pageY - origY, origH, optMaxH];
                 const newSize = Math.round(
-                    clamp(origSize + 2 * sign * pointerDelta, minSize, maxSize),
+                    clamp(origSize + 2 * sign * pointerDelta, MIN_SIZE, maxSize),
                 );
 
                 if (isHoriz) {
@@ -1133,14 +1137,24 @@ export class Cropt {
         return swapDims(this.options.viewport.width, this.options.viewport.height, this.#rotation);
     }
 
+    /**
+     * The zoom at which the bound image just covers the current viewport (the larger of
+     * the per-axis cover scales). With a matched aspect ratio this is an exact fit.
+     */
+    #coverZoom() {
+        return Math.max(
+            this.#vpWidth / this.#previewCssWidth,
+            this.#vpHeight / this.#previewCssHeight,
+        );
+    }
+
     #setZoomRange() {
         if (this.#previewCssWidth === 0) return;
         const [optMaxW, optMaxH] = this.#effectiveViewportMax();
         // Cover the current viewport, but never zoom out so far that the
         // image would be smaller than fitting within the options viewport.
         const minZoom = Math.max(
-            this.#vpWidth / this.#previewCssWidth,
-            this.#vpHeight / this.#previewCssHeight,
+            this.#coverZoom(),
             Math.min(optMaxW / this.#previewCssWidth, optMaxH / this.#previewCssHeight),
         );
         // Scale maxZoom down with the viewport so resizing both dimensions won't
@@ -1175,5 +1189,29 @@ export class Cropt {
         this.#tx = vp.left + this.#vpWidth / 2 - this.#originX;
         this.#ty = vp.top + this.#vpHeight / 2 - this.#originY;
         this.#applyTransform();
+    }
+
+    /**
+     * Shrinks one viewport dimension (keeping the other at its option maximum) so the
+     * viewport's aspect ratio matches the bound image's. Clamped to MIN_SIZE so extreme
+     * aspect ratios don't collapse the frame to a sliver. Only called on a fresh bind
+     * (no restored state) when enableResize is on, so dragging the shrunk edge back out
+     * stays bounded by the option maxima via #effectiveViewportMax.
+     */
+    #fitViewportToImage() {
+        const [optW, optH] = this.#effectiveViewportMax();
+        const imgRatio = this.#previewCssWidth / this.#previewCssHeight;
+        const vpRatio = optW / optH;
+
+        if (imgRatio > vpRatio) {
+            this.#vpWidth = optW;
+            this.#vpHeight = clamp(Math.round(optW / imgRatio), MIN_SIZE, optH);
+        } else {
+            this.#vpHeight = optH;
+            this.#vpWidth = clamp(Math.round(optH * imgRatio), MIN_SIZE, optW);
+        }
+        // With matched aspect ratios, this equals minZoom — zooming all the way out
+        // fits the whole image inside the viewport.
+        this.#boundZoom = this.#coverZoom();
     }
 }
